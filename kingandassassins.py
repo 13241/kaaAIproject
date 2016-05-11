@@ -35,33 +35,16 @@ CARDS = (
 	(1, 5, False, 4)
 )
 
-APKING = 0
-APKNIGHT = 0
-CUFFS = False
-APCOM = 0
-SECONDKILL = 0
-TESTSECONDKILL = 0
-ABORTKILL = False
+#vouees a disparaitre (global variable = mauvaise idee)
 #-###################################################################################################
 metax =9
 metay =9
-
-
 
 POPULATION = {
 	'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
 	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
 }
 
-CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
-
-DIRECTIONS = {
-		'E': (0, 1),
-		'W': (0, -1),
-		'S': (1, 0),
-		'N': (-1, 0)
-	}
-#-###################################################################################################
 BOARD = (
 	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
 	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
@@ -124,6 +107,11 @@ class KingAndAssassinsState(game.GameState):
 	}
 
 	def __init__(self, initialstate=KA_INITIAL_STATE):
+		self.APKING = 0
+		self.APKNIGHT = 0
+		self.CUFFS = False
+		self.APCOM = 0
+		self.SECONDKILL = 0
 		super().__init__(initialstate)
 
 	def _nextfree(self, x, y, dir):
@@ -133,11 +121,6 @@ class KingAndAssassinsState(game.GameState):
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		people = visible['people']
-		global APKING
-		global APKNIGHT
-		global CUFFS
-		global APCOM
-		global SECONDKILL
 #-###################################################################################################	
 		for move in moves:
 			print(move)
@@ -156,8 +139,8 @@ class KingAndAssassinsState(game.GameState):
 #-###################################################################################################	
 				new = people[nx][ny]
 				if p == 'king' and ((x, y, d) == visible['castle'][0] or (x, y, d) == visible['castle'][1]):
-					if APKING >= 1:
-						APKING-=1
+					if self.APKING >= 1:
+						self.APKING-=1
 						people[x][y], people[nx][ny] = people[nx][ny], people[x][y]
 						continue
 #-###################################################################################################
@@ -181,12 +164,12 @@ class KingAndAssassinsState(game.GameState):
 						cost = 1 if p == 'assassin' else 2
 					else:
 						cost = 0 if p == 'assassin' else 1
-					if p == 'king' and APKING >= cost:
-						APKING-=cost
-					elif p == 'knight' and APKNIGHT >= cost:
-						APKNIGHT-=cost
-					elif p in {'assassin'} | POPULATION and APCOM >= cost:
-						APCOM-=cost
+					if p == 'king' and self.APKING >= cost:
+						self.APKING-=cost
+					elif p == 'knight' and self.APKNIGHT >= cost:
+						self.APKNIGHT-=cost
+					elif p in {'assassin'} | POPULATION and self.APCOM >= cost:
+						self.APCOM-=cost
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 #-###################################################################################################
@@ -209,8 +192,8 @@ class KingAndAssassinsState(game.GameState):
 						if new is None and (BOARD[nx][ny] == 'G' or knightIsUp):
 							pushable = True
 					if pushable:
-						if APKNIGHT >= 1:
-							APKNIGHT-=1
+						if self.APKNIGHT >= 1:
+							self.APKNIGHT-=1
 						else:
 							raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 						while len(news)>0:
@@ -225,7 +208,7 @@ class KingAndAssassinsState(game.GameState):
 #-###################################################################################################
 				if player != 1:
 					raise game.InvalidMoveException('arrest action only possible for player 1')
-				if not CUFFS:
+				if not self.CUFFS:
 					raise game.InvalidMoveException('arrest action only possible if the drawn card says so')
 #-###################################################################################################
 				x, y, d = int(move[1]), int(move[2]), move[3]
@@ -238,8 +221,8 @@ class KingAndAssassinsState(game.GameState):
 					raise game.InvalidMoveException('{}: only villagers can be arrested'.format(move))
 				if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
 					raise game.InvalidMoveException('{}: arrest action impossible from below'.format(move))
-				if APKNIGHT >= 1:
-					APKNIGHT-=1
+				if self.APKNIGHT >= 1:
+					self.APKNIGHT-=1
 				else:
 					raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 #-###################################################################################################					
@@ -261,10 +244,10 @@ class KingAndAssassinsState(game.GameState):
 				if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
 					raise game.InvalidMoveException('{}: kill action impossible from below'.format(move))
 				if killer == 'assassin' and target == 'knight':
-					cost = 1 + SECONDKILL
-					SECONDKILL = 1
-					if APCOM >= cost:
-						APCOM-=cost
+					cost = 1 + self.SECONDKILL
+					self.SECONDKILL = 1
+					if self.APCOM >= cost:
+						self.APCOM-=cost
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 #-###################################################################################################
@@ -272,8 +255,8 @@ class KingAndAssassinsState(game.GameState):
 					people[tx][ty] = None
 #-###################################################################################################
 				elif killer == 'knight' and target == 'assassin':
-					if APKNIGHT >= 1:
-						APKNIGHT-=1
+					if self.APKNIGHT >= 1:
+						self.APKNIGHT-=1
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 #-###################################################################################################
@@ -294,8 +277,8 @@ class KingAndAssassinsState(game.GameState):
 				target = people[tx][ty]
 				if target != 'king':
 					raise game.InvalidMoveException('{}: only the king can be attacked'.format(move))
-				if APCOM >=2:
-					APCOM-=2
+				if self.APCOM >=2:
+					self.APCOM-=2
 				else:
 					raise game.InvalidMoveException('{}: not enough AP left'.format(move))
 #-###################################################################################################
@@ -312,12 +295,11 @@ class KingAndAssassinsState(game.GameState):
 		# If assassins' team just played, draw a new card
 		if player == 0:
 			visible['card'] = hidden['cards'].pop()
-			APKING = visible['card'][0]
-			APKNIGHT = visible['card'][1]
-			CUFFS = visible['card'][2]
-			APCOM = visible['card'][3]
-			SECONDKILL = 0
-
+			self.APKING = visible['card'][0]
+			self.APKNIGHT = visible['card'][1]
+			self.CUFFS = visible['card'][2]
+			self.APCOM = visible['card'][3]
+			self.SECONDKILL = 0
 	def _getcoord(self, coord):
 		return tuple(coord[i] + KingAndAssassinsState.DIRECTIONS[coord[2]][i] for i in range(2))
 
@@ -413,7 +395,11 @@ class KingAndAssassinsClient(game.GameClient):
 
 	def __init__(self, name, server, verbose=False):
 		self.__name = name
-		self.__assassins = []
+		self.assassins = []
+		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
+		self.CUFFS = False
+		self.TESTSECONDKILL = 0
+		self.ABORTKILL = False
 		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
 	def _handle(self, message):
@@ -467,9 +453,6 @@ class KingAndAssassinsClient(game.GameClient):
 		AP left for this move
 		'''
 		player = self._playernb
-		global CUFFS
-		global TESTSECONDKILL
-		global KA_INITIAL_STATE
 		if move[0] == 'move':
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			if x<0 or y <0 or x>9 or y>9:
@@ -481,7 +464,7 @@ class KingAndAssassinsClient(game.GameClient):
 			if nx<0 or ny <0 or nx>9 or ny>9:
 				return (0,False) #cannot move/act out of the map
 			new = people[nx][ny]
-			if p == 'king' and ((x, y, d) == KA_INITIAL_STATE['castle'][0] or (x, y, d) == KA_INITIAL_STATE['castle'][1]):
+			if p == 'king' and ((x, y, d) == (2, 2, 'N') or (x, y, d) == (4, 1, 'W')):
 				return (1, True)
 			# King, assassins, villagers can only move on a free cell
 			if p != 'knight' and new is not None:
@@ -527,7 +510,7 @@ class KingAndAssassinsClient(game.GameClient):
 		elif move[0] == 'arrest':
 			if player != 1:
 				return (0,False) #arrest action only possible for player 1
-			if not CUFFS:
+			if not self.CUFFS:
 				return (0,False) #arrest action only possible if the drawn card says so
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			arrester = people[x][y]
@@ -556,7 +539,7 @@ class KingAndAssassinsClient(game.GameClient):
 			if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
 				return (0,False) #kill action impossible from below
 			if killer == 'assassin' and target == 'knight':
-				cost = 1 + TESTSECONDKILL
+				cost = 1 + self.TESTSECONDKILL
 				return (cost, True)
 			elif killer == 'knight' and target == 'assassin':
 				return (1, True)
@@ -595,7 +578,6 @@ class KingAndAssassinsClient(game.GameClient):
 		people WILL BE modified
 		kingsState WILL BE modified
 		'''
-		global TESTSECONDKILL
 		if move[0] == 'move':
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			p = people[x][y]
@@ -626,7 +608,7 @@ class KingAndAssassinsClient(game.GameClient):
 			killer = people[x][y]
 			tx, ty = self._getcoord((x, y, d))
 			if killer == 'assassin':
-				TESTSECONDKILL = 1
+				self.TESTSECONDKILL = 1
 			people[tx][ty] = None
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
 		elif move[0] == 'attack':
@@ -648,14 +630,14 @@ class KingAndAssassinsClient(game.GameClient):
 			for j in range(len(actionsList)):
 				copyH = copy.copy(actionsList[j])
 				actionsList[j]=[]
-				if copyH[0] in CODESACTIONS:
-					actionsList[j].append(CODESACTIONS[copyH[0]])
+				if copyH[0] in self.CODESACTIONS:
+					actionsList[j].append(self.CODESACTIONS[copyH[0]])
 					actionsList[j].append(x)
 					actionsList[j].append(y)
 					if copyH[0] != 'r' and len(copyH)==2:
 						actionsList[j].append(copyH[1])
 						if copyH[0] == 'm':
-							x, y = str(int(x)+DIRECTIONS[copyH[1]][0]), str(int(y)+DIRECTIONS[copyH[1]][1])
+							x, y = str(int(x)+KingAndAssassinsState.DIRECTIONS[copyH[1]][0]), str(int(y)+DIRECTIONS[copyH[1]][1])
 			finalCommandsList+=copy.copy(actionsList)
 		return finalCommandsList
 	
@@ -674,7 +656,8 @@ class KingAndAssassinsClient(game.GameClient):
 			state = state._state['visible']
 			people = state['people']
 			peopleCopy = copy.deepcopy(people)
-			previousPeopleCopy  = copy.deepcopy(people)
+			previousPeopleCopy = copy.deepcopy(people)
+			self.CUFFS = state['card'][2]
 			global metax
 			global metay
 			if state['card'] is None:
@@ -718,8 +701,9 @@ class KingAndAssassinsHumanClient(game.GameClient):
 	'''Class representing a client for the King & Assassins game'''
 
 	def __init__(self, name, server, verbose=False):
-		super().__init__(server, KingAndAssassinsState, verbose=verbose)
+		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
 		self.__name = name
+		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
 	def _handle(self, message):
 		pass
@@ -803,14 +787,14 @@ class KingAndAssassinsHumanClient(game.GameClient):
 						for j in range(len(actionsList)):
 							copyH = copy.copy(actionsList[j])
 							actionsList[j]=[]
-							if copyH[0] in CODESACTIONS:
-								actionsList[j].append(CODESACTIONS[copyH[0]])
+							if copyH[0] in self.CODESACTIONS:
+								actionsList[j].append(self.CODESACTIONS[copyH[0]])
 								actionsList[j].append(x)
 								actionsList[j].append(y)
 								if copyH[0] != 'r' and len(copyH)==2:
 									actionsList[j].append(copyH[1])
 									if copyH[0] == 'm':
-										x, y = str(int(x)+DIRECTIONS[copyH[1]][0]), str(int(y)+DIRECTIONS[copyH[1]][1])
+										x, y = str(int(x)+KingAndAssassinsState.DIRECTIONS[copyH[1]][0]), str(int(y)+KingAndAssassinsState.DIRECTIONS[copyH[1]][1])
 						finalCommandsList+=copy.copy(actionsList)
 					humanMove = sys.stdin.readline()
 					humanMove = humanMove.strip("\n ")
