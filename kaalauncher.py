@@ -5,6 +5,7 @@ import random
 import socket
 from sys import platform as myPlatform
 import time
+import traceback
 
 
 try:
@@ -14,15 +15,15 @@ try:
 		command = "cmd.exe /c start"
 		cpuAs = True
 	elif myPlatform =="darwin":
-		'''Mac OS'''#not tested...
-		command = "open -a python"
+		'''Mac OS'''#does not work
+		command = "open -a python"#wrong command
 		cpuAs = True
 	if cpuAs:
 		host = str(socket.gethostname())
 		[Popen((command+" kingandassassins.py server --verbose").split())]
 		optA = command+" kingandassassins.py humanClient a --host "+host+" --verbose"
 		optB = command+" kingandassassins.py humanClient b --host "+host+" --verbose"
-		cpuAs = False#random.randint(0,1)
+		cpuAs = True#random.randint(0,1)
 		if cpuAs:
 			[Popen(optA.split())]
 			time.sleep(1)
@@ -32,5 +33,5 @@ try:
 			time.sleep(1)
 			[Popen(optA.split())]
 except Exception as e:
-	print(e)
+	traceback.print_exc(file=sys.stdout)
 	a = input("Enter")

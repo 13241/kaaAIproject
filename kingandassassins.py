@@ -3,6 +3,7 @@
 # Author: Sébastien Combéfis
 # Version: April 29, 2016
 
+#top
 import argparse
 import json
 import random
@@ -96,7 +97,7 @@ KA_INITIAL_STATE = {
 }
 
 
-class KingAndAssassinsState(game.GameState):
+class KingAndAssassinsState(game.GameState):#stateclass
 	'''Class representing a state for the King & Assassins game.'''
 
 	DIRECTIONS = {
@@ -106,7 +107,7 @@ class KingAndAssassinsState(game.GameState):
 		'N': (-1, 0)
 	}
 
-	def __init__(self, initialstate=KA_INITIAL_STATE):
+	def __init__(self, initialstate=KA_INITIAL_STATE):#initfun
 		self.APKING = 0
 		self.APKNIGHT = 0
 		self.CUFFS = False
@@ -114,10 +115,10 @@ class KingAndAssassinsState(game.GameState):
 		self.SECONDKILL = 0
 		super().__init__(initialstate)
 
-	def _nextfree(self, x, y, dir):
+	def _nextfree(self, x, y, dir):#nextfreefun
 		nx, ny = self._getcoord((x, y, dir))
 
-	def update(self, moves, player):
+	def update(self, moves, player):#updatefun
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		people = visible['people']
@@ -125,7 +126,7 @@ class KingAndAssassinsState(game.GameState):
 		for move in moves:
 			print(move)
 			# ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
-			if move[0] == 'move':
+			if move[0] == 'move':#updatemove
 				x, y, d = int(move[1]), int(move[2]), move[3]
 				if x<0 or y <0 or x>9 or y>9:
 					raise game.InvalidMoveException('{}: cannot select out of the map'.format(move))
@@ -204,7 +205,7 @@ class KingAndAssassinsState(game.GameState):
 						raise game.InvalidMoveException("{}: The knight can not push this way".format(move))
 #-###################################################################################################
 			# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-			elif move[0] == 'arrest':
+			elif move[0] == 'arrest':#updatearrest
 #-###################################################################################################
 				if player != 1:
 					raise game.InvalidMoveException('arrest action only possible for player 1')
@@ -229,7 +230,7 @@ class KingAndAssassinsState(game.GameState):
 				visible['arrested'].append(people[tx][ty])
 				people[tx][ty] = None
 			# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-			elif move[0] == 'kill':
+			elif move[0] == 'kill':#updatekill
 				x, y, d = int(move[1]), int(move[2]), move[3]
 				killer = people[x][y]
 				cost = 0
@@ -266,7 +267,7 @@ class KingAndAssassinsState(game.GameState):
 				else:
 					raise game.InvalidMoveException('{}: forbidden kill'.format(move))
 			# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-			elif move[0] == 'attack':
+			elif move[0] == 'attack':#updateattack
 				if player != 0:
 					raise game.InvalidMoveException('attack action only possible for player 0')
 				x, y, d = int(move[1]), int(move[2]), move[3]
@@ -284,7 +285,7 @@ class KingAndAssassinsState(game.GameState):
 #-###################################################################################################
 				visible['king'] = 'injured' if visible['king'] == 'healthy' else 'dead'
 			# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-			elif move[0] == 'reveal':
+			elif move[0] == 'reveal':#updatereveal
 				if player != 0:
 					raise game.InvalidMoveException('raise action only possible for player 0')
 				x, y = int(move[1]), int(move[2])
@@ -300,10 +301,10 @@ class KingAndAssassinsState(game.GameState):
 			self.CUFFS = visible['card'][2]
 			self.APCOM = visible['card'][3]
 			self.SECONDKILL = 0
-	def _getcoord(self, coord):
+	def _getcoord(self, coord):#getcoordfun
 		return tuple(coord[i] + KingAndAssassinsState.DIRECTIONS[coord[2]][i] for i in range(2))
 
-	def winner(self):
+	def winner(self):#winnerfun
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		# The king reached the castle
@@ -322,13 +323,13 @@ class KingAndAssassinsState(game.GameState):
 			return 1
 		return -1
 
-	def isinitial(self):
+	def isinitial(self):#isinitialfun
 		return self._state['hidden']['assassins'] is None
 
-	def setassassins(self, assassins):
+	def setassassins(self, assassins):#setassassinsfun
 		self._state['hidden']['assassins'] = set(assassins)
 
-	def prettyprint(self):
+	def prettyprint(self):#prettyprintfun
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		result = ''
@@ -346,21 +347,21 @@ class KingAndAssassinsState(game.GameState):
 		print(result)
 
 	@classmethod
-	def buffersize(cls):
+	def buffersize(cls):#buffersizefun
 		return BUFFER_SIZE
 
 
-class KingAndAssassinsServer(game.GameServer):
+class KingAndAssassinsServer(game.GameServer):#serverclass
 	'''Class representing a server for the King & Assassins game'''
 
-	def __init__(self, verbose=False):
+	def __init__(self, verbose=False):#initfun
 		super().__init__('King & Assassins', 2, KingAndAssassinsState(), verbose=verbose)
 		self._state._state['hidden'] = {
 			'assassins': None,
 			'cards': random.sample(CARDS, len(CARDS))
 		}
 
-	def _setassassins(self, move):
+	def _setassassins(self, move):#setassassinsfun
 		state = self._state
 		if 'assassins' not in move:
 			raise game.InvalidMoveException('The dictionary must contain an "assassins" key')
@@ -374,7 +375,7 @@ class KingAndAssassinsServer(game.GameServer):
 		state.setassassins(move['assassins'])
 		state.update([], 0)
 
-	def applymove(self, move):
+	def applymove(self, move):#applymovefun
 		try:
 			state = self._state
 			move = json.loads(move)
@@ -390,22 +391,34 @@ class KingAndAssassinsServer(game.GameServer):
 			raise game.InvalidMoveException('A valid move must be a dictionary')
 
 
-class KingAndAssassinsClient(game.GameClient):
+class KingAndAssassinsClient(game.GameClient):#clientclass
 	'''Class representing a client for the King & Assassins game'''
 
 	def __init__(self, name, server, verbose=False):
 		self.__name = name
 		self.assassins = []
 		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
+		self.DIRECTIONS = {
+			'E': (0, 1),
+			'W': (0, -1),
+			'S': (1, 0),
+			'N': (-1, 0)
+		}
+		self.INVDIRECTIONS = {
+			(0, 1):'E',
+			(0, -1):'W',
+			(1, 0):'S',
+			(-1, 0):'N'
+		}
 		self.CUFFS = False
 		self.TESTSECONDKILL = 0
 		self.ABORTKILL = False
 		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
-	def _handle(self, message):
+	def _handle(self, message):#handlefun
 		pass
 	
-	def _radar(self, state, coord, alAP, enAP):
+	def _radar(self, state, coord, alAP, enAP):#radarfun
 		'''
 		dangers esquivables
 		dangers inesquivables
@@ -426,7 +439,7 @@ class KingAndAssassinsClient(game.GameClient):
 			cKill = 1
 			cArr = 1 if state['card'][2] else 8
 			cMove = 1
-			priority = people[coord[0]][coord[1]] == 'assassin' or people[coord[0]][coord[1]] in self.__assassins
+			priority = people[coord[0]][coord[1]] == 'assassin' or people[coord[0]][coord[1]] in self.assassins
 		else:
 			return None
 		#Treat
@@ -438,10 +451,10 @@ class KingAndAssassinsClient(game.GameClient):
 			#assassin player
 			pass
 		
-	def _getcoord(self, coord):
-		return tuple(coord[i] + KingAndAssassinsState.DIRECTIONS[coord[2]][i] for i in range(2))
+	def _getcoord(self, coord):#getcoordfun
+		return tuple(coord[i] + self.DIRECTIONS[coord[2]][i] for i in range(2))
 	
-	def _validMove(self, people, move):
+	def _validMove(self, people, move):#validmovefun
 		'''
 		the purpose of this function is to determine whether a move will pass the
 		kingAndAssassinsState._update(...) method without raising an error (except for cost error)
@@ -453,7 +466,7 @@ class KingAndAssassinsClient(game.GameClient):
 		AP left for this move
 		'''
 		player = self._playernb
-		if move[0] == 'move':
+		if move[0] == 'move':#validmovemove
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			if x<0 or y <0 or x>9 or y>9:
 				return (0,False) #cannot select out of the map
@@ -507,7 +520,7 @@ class KingAndAssassinsClient(game.GameClient):
 				else:
 					return (0,False) #The knight can not push this way
 		# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		elif move[0] == 'arrest':
+		elif move[0] == 'arrest':#validmovearrest
 			if player != 1:
 				return (0,False) #arrest action only possible for player 1
 			if not self.CUFFS:
@@ -524,7 +537,7 @@ class KingAndAssassinsClient(game.GameClient):
 				return (0,False) #arrest action impossible from below
 			return (1, True)				
 		# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		elif move[0] == 'kill':
+		elif move[0] == 'kill':#validmovekill
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			killer = people[x][y]
 			cost = 0
@@ -546,7 +559,7 @@ class KingAndAssassinsClient(game.GameClient):
 			else:
 				return (0,False) #forbidden kill
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		elif move[0] == 'attack':
+		elif move[0] == 'attack':#validmoveattack
 			if player != 0:
 				return (0,False) #attack action only possible for player 0
 			x, y, d = int(move[1]), int(move[2]), move[3]
@@ -559,7 +572,7 @@ class KingAndAssassinsClient(game.GameClient):
 				return (0,False) #only the king can be attacked
 			return (2, True)
 		# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-		elif move[0] == 'reveal':
+		elif move[0] == 'reveal':#validmovereveal
 			if player != 0:
 				return (0,False) #action only possible for player 0
 			x, y = int(move[1]), int(move[2])
@@ -568,7 +581,7 @@ class KingAndAssassinsClient(game.GameClient):
 				return (0,False) #the specified villager is not an assassin
 			return (0, True)
 	
-	def _testUpdate(self, people, kingsState, move):
+	def _testUpdate(self, people, kingsState, move):#testupdatefun
 		'''
 		this method's purpose is to simulate a move on a copy of people positions
 		to check the new state of the game. 
@@ -578,7 +591,7 @@ class KingAndAssassinsClient(game.GameClient):
 		people WILL BE modified
 		kingsState WILL BE modified
 		'''
-		if move[0] == 'move':
+		if move[0] == 'move':#testupdatemove
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			p = people[x][y]
 			nx, ny = self._getcoord((x, y, d))
@@ -598,12 +611,12 @@ class KingAndAssassinsClient(game.GameClient):
 					people[loc[0]][loc[1]], people[nx][ny] = people[nx][ny], people[loc[0]][loc[1]]
 					nx, ny = loc[0], loc[1]
 		# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		elif move[0] == 'arrest':
+		elif move[0] == 'arrest':#testupdatearrest
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			tx, ty = self._getcoord((x, y, d))
 			people[tx][ty] = None		
 		# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		elif move[0] == 'kill':
+		elif move[0] == 'kill':#testupdatekill
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			killer = people[x][y]
 			tx, ty = self._getcoord((x, y, d))
@@ -611,14 +624,14 @@ class KingAndAssassinsClient(game.GameClient):
 				self.TESTSECONDKILL = 1
 			people[tx][ty] = None
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		elif move[0] == 'attack':
+		elif move[0] == 'attack':#testupdateattack
 			kingsState = 'injured' if visible['king'] == 'healthy' else 'dead'
 		# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-		elif move[0] == 'reveal':
+		elif move[0] == 'reveal':#testupdatereveal
 			x, y = int(move[1]), int(move[2])
 			people[x][y] = 'assassin'
 	
-	def _prettyCommand(self, commands):
+	def _prettyCommand(self, commands):#prettycommandfun
 		finalCommandsList = []
 		commands = commands.strip(' +')
 		commandsList = commands.split(' + ')
@@ -637,11 +650,18 @@ class KingAndAssassinsClient(game.GameClient):
 					if copyH[0] != 'r' and len(copyH)==2:
 						actionsList[j].append(copyH[1])
 						if copyH[0] == 'm':
-							x, y = str(int(x)+KingAndAssassinsState.DIRECTIONS[copyH[1]][0]), str(int(y)+DIRECTIONS[copyH[1]][1])
+							x, y = str(int(x)+self.DIRECTIONS[copyH[1]][0]), str(int(y)+self.DIRECTIONS[copyH[1]][1])
 			finalCommandsList+=copy.copy(actionsList)
 		return finalCommandsList
 	
-	def _nextmove(self, state):
+	def _bunchOfMoves(self, people, kingsState, coord, commands):#bunchofmovesfun
+		moves = str(coord[0])+' '+str(coord[1])+' '+commands
+		movesList = self._prettyCommands(moves)
+		for i in range(movesList):
+			pass
+		pass
+	
+	def _nextmove(self, state):#nextmovefun
 		# Two possible situations:
 		# - If the player is the first to play, it has to select his/her assassins
 		#   The move is a dictionary with a key 'assassins' whose value is a list of villagers' names
@@ -657,10 +677,14 @@ class KingAndAssassinsClient(game.GameClient):
 			people = state['people']
 			peopleCopy = copy.deepcopy(people)
 			previousPeopleCopy = copy.deepcopy(people)
-			self.CUFFS = state['card'][2]
+			if state['card'] is not None:
+				self.CUFFS = state['card'][2]
 			global metax
 			global metay
 			if state['card'] is None:
+				self.assassins.append(people[7][1])
+				self.assassins.append(people[1][7])
+				self.assassins.append(people[2][1])
 				return json.dumps({'assassins': [people[7][1], people[1][7], people[2][1]]}, separators=(',', ':'))
 			else:
 				if self._playernb == 0:
@@ -697,18 +721,28 @@ class KingAndAssassinsClient(game.GameClient):
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 
-class KingAndAssassinsHumanClient(game.GameClient):
+class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 	'''Class representing a client for the King & Assassins game'''
 
-	def __init__(self, name, server, verbose=False):
+	def __init__(self, name, server, verbose=False):#initfun
 		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
+		self.DIRECTIONS = {
+			'E': (0, 1),
+			'W': (0, -1),
+			'S': (1, 0),
+			'N': (-1, 0)
+		}
+		self.POPULATION = {
+			'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
+			'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
+		}
 		self.__name = name
 		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
-	def _handle(self, message):
+	def _handle(self, message):#handlefun
 		pass
 
-	def _nextmove(self, state):
+	def _nextmove(self, state):#nextmovefun
 		'''
 		Two possible situations:
 		  -	If the player is the first to play, it has to select his/her assassins
@@ -761,7 +795,7 @@ class KingAndAssassinsHumanClient(game.GameClient):
 		if state['card'] is None:
 			while True:
 				humanMove = set(acronym[0:2] for acronym in humanMove.split(' '))
-				humanMove = [POPULATION_el for acronym in humanMove for POPULATION_el in POPULATION if acronym==POPULATION_el[0:2]]
+				humanMove = [POPULATION_el for acronym in humanMove for POPULATION_el in self.POPULATION if acronym==POPULATION_el[0:2]]
 				if len(humanMove) != 3:
 					print("Entrez 3 acronymes d'assassin valides (2 premieres lettres minimum)")
 					humanMove = sys.stdin.readline()
@@ -778,9 +812,7 @@ class KingAndAssassinsHumanClient(game.GameClient):
 #-###################################################################################################
 						if len(humanMoveList[i]) <3:
 							print("Entrez une commande d'action correcte (mini 3 arguments)")
-							humanMove = sys.stdin.readline()
-							humanMove = humanMove.strip("\n ")
-							continue
+							break
 						x = humanMoveList[i][0]
 						y = humanMoveList[i][1]
 						actionsList = humanMoveList[i][2:len(humanMoveList[i])]
@@ -794,7 +826,7 @@ class KingAndAssassinsHumanClient(game.GameClient):
 								if copyH[0] != 'r' and len(copyH)==2:
 									actionsList[j].append(copyH[1])
 									if copyH[0] == 'm':
-										x, y = str(int(x)+KingAndAssassinsState.DIRECTIONS[copyH[1]][0]), str(int(y)+KingAndAssassinsState.DIRECTIONS[copyH[1]][1])
+										x, y = str(int(x)+self.DIRECTIONS[copyH[1]][0]), str(int(y)+self.DIRECTIONS[copyH[1]][1])
 						finalCommandsList+=copy.copy(actionsList)
 					humanMove = sys.stdin.readline()
 					humanMove = humanMove.strip("\n ")
@@ -803,7 +835,7 @@ class KingAndAssassinsHumanClient(game.GameClient):
 				traceback.print_exc(file=sys.stdout)
 				a = input("Enter")
 				
-if __name__ == '__main__':
+if __name__ == '__main__':#main
 	# Create the top-level parser
 	parser = argparse.ArgumentParser(description='King & Assassins game')
 	subparsers = parser.add_subparsers(
@@ -842,4 +874,4 @@ if __name__ == '__main__':
 	elif args.component == 'humanClient':
 		KingAndAssassinsHumanClient(args.name, (args.host, args.port), verbose=args.verbose)
 	a = input("Enter")
-		
+#bottom

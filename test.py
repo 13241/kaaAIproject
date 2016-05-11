@@ -29,3 +29,12 @@ print(test)
 
 
 '''
+
+
+DIRECTIONS = {
+		(0, 1):'E',
+		(0, -1):'W',
+		(1, 0):'S',
+		(-1, 0):'N'
+	}
+print(DIRECTIONS[(0,1)])
