@@ -424,34 +424,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		dangers inesquivables
 		priorite (assassin/roi en danger)
 		=>si les 3 assassins sont reveles, on ne tient plus compte des villageois
-		'''
-		#Initialize
-		people = state['people']
-		if people[coord[0]][coord[1]][0] == 'k' and self._playernb == 1:
-			#king player
-			cKill = 1
-			cAtk = 2
-			cMove = 1
-			priority = people[coord[0]][coord[1]] == 'king'
-			cDmg = cAtk if priority else cKill
-		elif people[coord[0]][coord[1]][0] != 'k' and self._playernb == 0:
-			#assassin player
-			cKill = 1
-			cArr = 1 if state['card'][2] else 8
-			cMove = 1
-			priority = people[coord[0]][coord[1]] == 'assassin' or people[coord[0]][coord[1]] in self.assassins
-		else:
-			return None
-		#Treat
-		if self._playernb ==1:
-			#king player
-			renAP = enAP - cDmg
-			pass
-		else:
-			#assassin player
-			pass
+		'''	
+		pass
 		
 	def _getcoord(self, coord):#getcoordfun
+		'''
+		return a tuple of coordinates deplaced in a certain DIRECTION (N, S, E, W)
+		'''
 		return tuple(coord[i] + self.DIRECTIONS[coord[2]][i] for i in range(2))
 	
 	def _validMove(self, people, move):#validmovefun
@@ -581,17 +560,16 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				return (0,False) #the specified villager is not an assassin
 			return (0, True)
 	
-	def _testUpdate(self, people, kingsState, move):#testupdatefun
+	def _updateCopy(self, people, kingsState, move):#updatecopyfun
 		'''
 		this method's purpose is to simulate a move on a copy of people positions
 		to check the new state of the game. 
 		
 		Warnings : 
 		The move MUST return True when called with _validMove
-		people WILL BE modified
-		kingsState WILL BE modified
+		people may be modified
 		'''
-		if move[0] == 'move':#testupdatemove
+		if move[0] == 'move':#updatecopymove
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			p = people[x][y]
 			nx, ny = self._getcoord((x, y, d))
@@ -611,12 +589,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					people[loc[0]][loc[1]], people[nx][ny] = people[nx][ny], people[loc[0]][loc[1]]
 					nx, ny = loc[0], loc[1]
 		# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		elif move[0] == 'arrest':#testupdatearrest
+		elif move[0] == 'arrest':#updatecopyarrest
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			tx, ty = self._getcoord((x, y, d))
 			people[tx][ty] = None		
 		# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		elif move[0] == 'kill':#testupdatekill
+		elif move[0] == 'kill':#updatecopykill
 			x, y, d = int(move[1]), int(move[2]), move[3]
 			killer = people[x][y]
 			tx, ty = self._getcoord((x, y, d))
@@ -624,14 +602,19 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				self.TESTSECONDKILL = 1
 			people[tx][ty] = None
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		elif move[0] == 'attack':#testupdateattack
-			kingsState = 'injured' if visible['king'] == 'healthy' else 'dead'
+		elif move[0] == 'attack':#updatecopyattack
+			kingsState = 'injured' if kingsState == 'healthy' else 'dead'
 		# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-		elif move[0] == 'reveal':#testupdatereveal
+		elif move[0] == 'reveal':#updatecopyreveal
 			x, y = int(move[1]), int(move[2])
 			people[x][y] = 'assassin'
+		return (people, kingsState)
 	
 	def _prettyCommand(self, commands):#prettycommandfun
+		'''
+		this function convert a string command as described in kingAndAssassinsHumanClient class
+		into a list of commands as described in _nextmove from kingAndAssassinsClient class
+		'''
 		finalCommandsList = []
 		commands = commands.strip(' +')
 		commandsList = commands.split(' + ')
@@ -654,24 +637,48 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			finalCommandsList+=copy.copy(actionsList)
 		return finalCommandsList
 	
-	def _bunchOfMoves(self, people, kingsState, coord, commands):#bunchofmovesfun
-		moves = str(coord[0])+' '+str(coord[1])+' '+commands
+	def _validObjective(self, people, kingsState, coord, commands, AP):#validobjectivefun
+		'''
+		this function tests a set of actions (commands) on the piece at coord for the price of AP
+		it returns a tuple :
+		(True, movesList, APremaining, peopleCopy, kingsState) if the set of actions can be done
+		(False, validCommands, APremaining, fatalCommand, lastCoord) if it can not be done
+		
+		people is not modified
+		'''
+		moves = str(x)+' '+str(y)+' '+commands
+		validCommands = ''
 		movesList = self._prettyCommands(moves)
-		for i in range(movesList):
-			pass
+		peopleCopy = copy.deepcopy(people)
+		for i in range(len(movesList)):
+			response = self._validMove(peopleCopy, movesList[i])
+			if response[1] and AP-response[0]>=0:
+				AP-=response[0]
+				updated = self._updateCopy(peopleCopy, kingsState, movesList[i])
+				peopleCopy, kingsState = updated[0], updated[1]
+				validCommands=commands[0:3*i+3]
+			else:
+				loc = (movesList[i][1], movesList[i][2])
+				return (False, validCommands, AP, commands[3*i:3*i+3], loc)
+		return (True, movesList, AP, peopleCopy, kingsState)
+	
+	def _stateObjective(self, people, kingsState, coord, target, objective, AP):#stateobjectivefun
+		
 		pass
 	
 	def _nextmove(self, state):#nextmovefun
-		# Two possible situations:
-		# - If the player is the first to play, it has to select his/her assassins
-		#   The move is a dictionary with a key 'assassins' whose value is a list of villagers' names
-		# - Otherwise, it has to choose a sequence of actions
-		#   The possible actions are:
-		#   ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
-		#   ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		#   ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		#   ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		#   ('reveal', x, y): reveals villager at position (x,y) as an assassin
+		'''
+		 Two possible situations:
+		 - If the player is the first to play, it has to select his/her assassins
+		   The move is a dictionary with a key 'assassins' whose value is a list of villagers' names
+		 - Otherwise, it has to choose a sequence of actions
+		   The possible actions are:
+		   ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
+		   ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
+		   ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
+		   ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
+		   ('reveal', x, y): reveals villager at position (x,y) as an assassin
+		'''
 		try:
 			state = state._state['visible']
 			people = state['people']
@@ -706,7 +713,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 						response = self._validMove(peopleCopy, command)
 						if response[1] and APki-response[0]>=0:
 							APki-=response[0]
-							self._testUpdate(peopleCopy, copy.copy(state['king']), command)
+							self._updateCopy(peopleCopy, copy.copy(state['king']), command)
 							newcoord = self._getcoord(coord)
 							xking, yking = newcoord[0], newcoord[1]
 							total+=current
