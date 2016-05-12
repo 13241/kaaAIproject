@@ -435,12 +435,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _getdir(self, movement):#getdir
 		'''
-		returns a list of DIRECTIONS elements that describe movement for x and y in a tuple
+		returns the DIRECTIONS elements that describe movement for x and y in a tuple
 		'''
 		xs, ys = movement[0], movement[1]
-		xList = xs*'_S' if xs >= 0 else (-1*xs)*'_N'
-		yList = ys*'_E' if ys >= 0 else (-1*ys)*'_W'
-		return (xList, yList)
+		xdir = 'S' if xs >= 0 else 'N'
+		ydir = 'E' if ys >= 0 else 'W'
+		return (xdir, ydir)
 		
 	def _validMove(self, people, move):#validmovefun
 		'''
@@ -663,8 +663,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			response = self._validMove(peopleCopy, movesList[i])
 			if response[1] and AP-response[0]>=0:
 				AP-=response[0]
-				updated = self._updateCopy(peopleCopy, kingsState, movesList[i])
-				peopleCopy, kingsState = updated[0], updated[1]
+				peopleCopy, kingsState = self._updateCopy(peopleCopy, kingsState, movesList[i])
 				validCommands=commands[0:3*i+3]
 			else:
 				loc = (movesList[i][1], movesList[i][2])
@@ -673,12 +672,91 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _stateObjective(self, people, kingsState, coord, target, objective, AP):#stateobjectivefun
 		'''
-		this function search for a path to accomplish objective at position target from position coord with AP on people
+		this function searches for a path to accomplish objective at position target from position coord with AP on people
 		'''
-		basicState = ''
-		movement = (target[0]-coord[0], target[1]-coord[1])
-		directionsList = self._getdir(movement)
-		pass
+		#etat actuel : PathFinding pour le ROI et les VILLAGEOIS (non assassins)
+		#utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
+		#=> doit encore énormément évoluer
+		#=> sera certainement dédoublée plusieurs fois pour correspondre à une stratégie de pathfinding propre à chaque pion
+		#=> penser à retourner un dictionnaire plutot qu'un tuple pour plus de lisibilité....
+		x, y = target[0]-coord[0], target[1]-coord[1]
+		xdir, ydir = self._getdir((x,y))
+		stated = ''.join([
+			abs(x)*''.join(['m',xdir,' ']),
+			(abs(y)-1)*''.join(['m',ydir,' ']),
+			''.join([objective,ydir,' '])])
+		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
+		response = self._validObjective(people, kingsState, coord, stated, AP)
+		ended = response[0]
+		forceEnded = False
+		while not ended:
+			validCommands = response[1]
+			xdone = validCommands.count(''.join(['m',xdir]))
+			ydone = validCommands.count(''.join(['m',ydir]))
+			APleft = response[2]
+			fatalCommand = response[3]
+			fatalCoord = response[4]
+			if fatalCommand[1]==xdir and (abs(y)-ydone-1 >=1 or abs(x)-xdone == 1):
+				if abs(x)-xdone ==1:
+					stated = ''.join([
+						validCommands,
+						(abs(y)-ydone)*''.join(['m',ydir,' ']),
+						''.join([objective,xdir,' '])])
+				else:
+					ydone+=1
+					stated = ''.join([
+						validCommands,
+						''.join(['m',ydir,' ']),
+						(abs(x)-xdone)*''.join(['m',xdir,' ']),
+						(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
+						''.join([objective,ydir,' '])])
+			elif fatalCommand[1]==ydir and abs(y)-ydone >=2:
+				ydone+=2
+				lastxid = validCommands.rfind(''.join(['m',xdir,' ']))
+				beforelastxid = validCommands[0:lastxid]
+				afterlastxid = validCommands[lastxid+3:len(validCOmmands)]
+				if abs(y)-ydone ==0:
+					if abs(x)-xdone ==0:
+						stated =''.join([
+							beforelastxid,
+							afterlastxid,
+							2*''.join(['m',ydir,' ']),
+							''.join([objective,xdir,' '])])
+					else:
+						stated = ''.join([
+							beforelastxid,
+							afterlastxid,
+							2*''.join(['m',ydir,' ']),
+							''.join(['m',xdir,' ']),
+							(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
+							''.join([objective,xdir,' '])])
+				else:
+					stated = ''.join([
+						beforelastxid,
+						afterlastxid,
+						2*''.join(['m',ydir,' ']),
+						''.join(['m',xdir,' ']),
+						(abs(x)-xdone)*''.join(['m',xdir,' ']),
+						(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
+						''.join([objective,ydir,' '])])
+			else:
+				forceEnded = True
+				break
+			#fin de boucle
+			response = self._validObjective(people, kingsState, coord, stated, AP)
+			ended = response[0]
+		#move impossible
+		if forceEnded:
+			reason = 'Unknown'#a modifier
+#-###################################################################################################	
+			return (False, reason)
+		#move validé
+		movesList = response[1]
+		APleft = response[2]
+		people = response[3]
+		kingsState = response[4]
+		newcoord = target if objective == 'm' else (response[1][len(response[1])][1], response[1][len(response[1])][2])
+		return (ended, movesList, APleft, people, kingsState, newcoord)
 	
 	def _nextmove(self, state):#nextmovefun
 		'''

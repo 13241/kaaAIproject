@@ -27,13 +27,13 @@ print(test)
 
 '''
 
-
-DIRECTIONS = {
-		(0, 1):'E',
-		(0, -1):'W',
-		(1, 0):'S',
-		(-1, 0):'N'
-	}
-k = 'K'
-kk = (-1*0)*k
-print(kk)
+x = -7
+y = 8
+xdir = 'N'
+ydir = 'E'
+objective = 'k'
+basicState = ''.join([
+	abs(x)*''.join(['m',xdir,' ']),
+	(abs(y)-1)*''.join(['m',ydir,' ']),
+	''.join([objective,ydir,' '])])
+print(basicState)
