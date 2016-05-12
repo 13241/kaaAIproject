@@ -1,6 +1,3 @@
-from kingandassassins import *
-
-
 
 '''
 POPULATION = {
@@ -37,4 +34,6 @@ DIRECTIONS = {
 		(1, 0):'S',
 		(-1, 0):'N'
 	}
-print(DIRECTIONS[(0,1)])
+k = 'K'
+kk = (-1*0)*k
+print(kk)

@@ -429,10 +429,19 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		
 	def _getcoord(self, coord):#getcoordfun
 		'''
-		return a tuple of coordinates deplaced in a certain DIRECTION (N, S, E, W)
+		returns a tuple of coordinates deplaced in a certain DIRECTION (N, S, E, W)
 		'''
 		return tuple(coord[i] + self.DIRECTIONS[coord[2]][i] for i in range(2))
 	
+	def _getdir(self, movement):#getdir
+		'''
+		returns a list of DIRECTIONS elements that describe movement for x and y in a tuple
+		'''
+		xs, ys = movement[0], movement[1]
+		xList = xs*'_S' if xs >= 0 else (-1*xs)*'_N'
+		yList = ys*'_E' if ys >= 0 else (-1*ys)*'_W'
+		return (xList, yList)
+		
 	def _validMove(self, people, move):#validmovefun
 		'''
 		the purpose of this function is to determine whether a move will pass the
@@ -663,7 +672,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		return (True, movesList, AP, peopleCopy, kingsState)
 	
 	def _stateObjective(self, people, kingsState, coord, target, objective, AP):#stateobjectivefun
-		
+		'''
+		this function search for a path to accomplish objective at position target from position coord with AP on people
+		'''
+		basicState = ''
+		movement = (target[0]-coord[0], target[1]-coord[1])
+		directionsList = self._getdir(movement)
 		pass
 	
 	def _nextmove(self, state):#nextmovefun
