@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # kingandassassins.py
-# Author: Sébastien Combéfis
-# Version: April 29, 2016
+# Author: Sébastien Combéfis, Damien Abeloos
+# Version: May 13, 2016
 
 #top
 import argparse
