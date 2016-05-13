@@ -10,6 +10,10 @@ import traceback
 
 try:
 	cpuAs = False
+	response = input("Type IA to play IA's, Press ENTER to play yourself\r\n")
+	client = "humanClient"
+	if response == "IA":
+		client = "client"
 	if myPlatform =="win32":
 		'''Windows'''
 		command = "cmd.exe /c start"
@@ -21,8 +25,8 @@ try:
 	if cpuAs:
 		host = str(socket.gethostname())
 		[Popen((command+" kingandassassins.py server --verbose").split())]
-		optA = command+" kingandassassins.py humanClient a --host "+host+" --verbose"
-		optB = command+" kingandassassins.py humanClient b --host "+host+" --verbose"
+		optA = command+" kingandassassins.py "+client+" a --host "+host+" --verbose"
+		optB = command+" kingandassassins.py "+client+" b --host "+host+" --verbose"
 		cpuAs = True#random.randint(0,1)
 		if cpuAs:
 			[Popen(optA.split())]

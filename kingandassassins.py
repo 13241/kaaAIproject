@@ -36,11 +36,6 @@ CARDS = (
 	(1, 5, False, 4)
 )
 
-#vouees a disparaitre (global variable = mauvaise idee)
-#-###################################################################################################
-metax =9
-metay =9
-
 POPULATION = {
 	'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
 	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
@@ -404,15 +399,10 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			'S': (1, 0),
 			'N': (-1, 0)
 		}
-		self.INVDIRECTIONS = {
-			(0, 1):'E',
-			(0, -1):'W',
-			(1, 0):'S',
-			(-1, 0):'N'
-		}
 		self.CUFFS = False
 		self.TESTSECONDKILL = 0
 		self.ABORTKILL = False
+		self.turns = 0
 		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
 	def _handle(self, message):#handlefun
@@ -619,7 +609,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			people[x][y] = 'assassin'
 		return (people, kingsState)
 	
-	def _prettyCommand(self, commands):#prettycommandfun
+	def _prettyCommands(self, commands):#prettycommandsfun
 		'''
 		this function convert a string command as described in kingAndAssassinsHumanClient class
 		into a list of commands as described in _nextmove from kingAndAssassinsClient class
@@ -655,7 +645,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		
 		people is not modified
 		'''
-		moves = str(x)+' '+str(y)+' '+commands
+		moves = str(coord[0])+' '+str(coord[1])+' '+commands
 		validCommands = ''
 		movesList = self._prettyCommands(moves)
 		peopleCopy = copy.deepcopy(people)
@@ -679,66 +669,73 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		#=> doit encore énormément évoluer
 		#=> sera certainement dédoublée plusieurs fois pour correspondre à une stratégie de pathfinding propre à chaque pion
 		#=> penser à retourner un dictionnaire plutot qu'un tuple pour plus de lisibilité....
+		if coord == target:
+			return (True, [], AP, people, kingsState, coord)
 		x, y = target[0]-coord[0], target[1]-coord[1]
 		xdir, ydir = self._getdir((x,y))
+		metadir = ydir if x==0 else xdir
+		kx = 0 if x==0 else 1
+		ky = 1 if x==0 else 0
 		stated = ''.join([
-			abs(x)*''.join(['m',xdir,' ']),
-			(abs(y)-1)*''.join(['m',ydir,' ']),
-			''.join([objective,ydir,' '])])
+			(abs(y)-ky)*''.join(['m',ydir,' ']),
+			(abs(x)-kx)*''.join(['m',xdir,' ']),
+			''.join([objective,metadir,' '])])
 		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
 		response = self._validObjective(people, kingsState, coord, stated, AP)
 		ended = response[0]
 		forceEnded = False
+		longestValidCommands = ''
 		while not ended:
 			validCommands = response[1]
-			xdone = validCommands.count(''.join(['m',xdir]))
+			longestValidCommands =validCommands if len(validCommands)>len(longestValidCommands) else longestValidCommands
 			ydone = validCommands.count(''.join(['m',ydir]))
+			xdone = validCommands.count(''.join(['m',xdir]))
 			APleft = response[2]
 			fatalCommand = response[3]
 			fatalCoord = response[4]
-			if fatalCommand[1]==xdir and (abs(y)-ydone-1 >=1 or abs(x)-xdone == 1):
-				if abs(x)-xdone ==1:
+			if fatalCommand[1]==ydir and (abs(x)-xdone-1 >=1 or abs(y)-ydone == 1):
+				if abs(y)-ydone ==1:
 					stated = ''.join([
 						validCommands,
-						(abs(y)-ydone)*''.join(['m',ydir,' ']),
-						''.join([objective,xdir,' '])])
-				else:
-					ydone+=1
-					stated = ''.join([
-						validCommands,
-						''.join(['m',ydir,' ']),
 						(abs(x)-xdone)*''.join(['m',xdir,' ']),
-						(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
 						''.join([objective,ydir,' '])])
-			elif fatalCommand[1]==ydir and abs(y)-ydone >=2:
-				ydone+=2
-				lastxid = validCommands.rfind(''.join(['m',xdir,' ']))
-				beforelastxid = validCommands[0:lastxid]
-				afterlastxid = validCommands[lastxid+3:len(validCOmmands)]
-				if abs(y)-ydone ==0:
-					if abs(x)-xdone ==0:
+				else:
+					xdone+=1
+					stated = ''.join([
+						validCommands,
+						''.join(['m',xdir,' ']),
+						(abs(y)-ydone)*''.join(['m',ydir,' ']),
+						(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
+						''.join([objective,xdir,' '])])
+			elif fatalCommand[1]==xdir and abs(x)-xdone >=2 and validCommands.count(''.join(['m',ydir,' '])) > 0:
+				xdone+=2
+				lastyid = validCommands.rfind(''.join(['m',ydir,' ']))
+				beforelastyid = validCommands[0:lastyid]
+				afterlastyid = validCommands[lastyid+3:len(validCommands)]
+				if abs(x)-xdone ==0:
+					if abs(y)-ydone ==0:
 						stated =''.join([
-							beforelastxid,
-							afterlastxid,
-							2*''.join(['m',ydir,' ']),
-							''.join([objective,xdir,' '])])
+							beforelastyid,
+							afterlastyid,
+							2*''.join(['m',xdir,' ']),
+							''.join([objective,ydir,' '])])
 					else:
 						stated = ''.join([
-							beforelastxid,
-							afterlastxid,
-							2*''.join(['m',ydir,' ']),
-							''.join(['m',xdir,' ']),
-							(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
-							''.join([objective,xdir,' '])])
+							beforelastyid,
+							afterlastyid,
+							2*''.join(['m',xdir,' ']),
+							''.join(['m',ydir,' ']),
+							(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
+							''.join([objective,ydir,' '])])
 				else:
 					stated = ''.join([
-						beforelastxid,
-						afterlastxid,
-						2*''.join(['m',ydir,' ']),
-						''.join(['m',xdir,' ']),
-						(abs(x)-xdone)*''.join(['m',xdir,' ']),
-						(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
-						''.join([objective,ydir,' '])])
+						beforelastyid,
+						afterlastyid,
+						2*''.join(['m',xdir,' ']),
+						''.join(['m',ydir,' ']),
+						(abs(y)-ydone)*''.join(['m',ydir,' ']),
+						(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
+						''.join([objective,xdir,' '])])
 			else:
 				forceEnded = True
 				break
@@ -747,9 +744,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			ended = response[0]
 		#move impossible
 		if forceEnded:
-			reason = 'Unknown'#a modifier
-#-###################################################################################################	
-			return (False, reason)
+			reason = 'notFullyCompleted'#a modifier
+#-###################################################################################################
+			if longestValidCommands != '':
+				return (False, self._prettyCommands(str(coord[0])+' '+str(coord[1])+' '+longestValidCommands), APleft, reason)
+			else:
+				return (False, [], APleft, reason)
 		#move validé
 		movesList = response[1]
 		APleft = response[2]
@@ -775,46 +775,182 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			state = state._state['visible']
 			people = state['people']
 			peopleCopy = copy.deepcopy(people)
-			previousPeopleCopy = copy.deepcopy(people)
-			if state['card'] is not None:
-				self.CUFFS = state['card'][2]
-			global metax
-			global metay
+			kingsState = state['king']
+			self.turns+=1
 			if state['card'] is None:
+				self.turns-=1
 				self.assassins.append(people[7][1])
 				self.assassins.append(people[1][7])
 				self.assassins.append(people[2][1])
 				return json.dumps({'assassins': [people[7][1], people[1][7], people[2][1]]}, separators=(',', ':'))
 			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
 				if self._playernb == 0:
-					commands = ''
-					finalCommandsList = self._prettyCommand(commands)
+					finalCommandsList=[]
+					#IA
+					if self.turns == 1:
+						response = self._stateObjective(peopleCopy, kingsState, (8,3), (5,4), 'm', 4)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 2:
+						response = self._stateObjective(peopleCopy, kingsState, (5,2), (4,3), 'm', 4)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (3,6), (1,6), 'm', 2)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 3:
+						response = self._stateObjective(peopleCopy, kingsState, (2,1), (2,2), 'm', 4)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (3,4), (1,4), 'm', 3)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 4:
+						response = self._stateObjective(peopleCopy, kingsState, (7,5), (6,5), 'm', 4)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (5,5), (2,5), 'm', 3)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 5:
+						response = self._stateObjective(peopleCopy, kingsState, (5,7), (4,7), 'm', 4)
+						if response[0]:
+							finalCommandsList += response[1]
+							APcom = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 				else:
-					commands = ''
-					APki = state['card'][0]
-					xking, yking = metax, metay
-					kingCommand = str(xking)+' '+str(yking)+' '
-					commands+=kingCommand
-					current = 'mN '
-					total = ''
-					while APki>0:
-						coord = (xking, yking, current[1])
-						kingCommand = str(xking)+' '+str(yking)+' '
-						command = self._prettyCommand(kingCommand+current)[0]
-						response = self._validMove(peopleCopy, command)
-						if response[1] and APki-response[0]>=0:
-							APki-=response[0]
-							self._updateCopy(peopleCopy, copy.copy(state['king']), command)
-							newcoord = self._getcoord(coord)
-							xking, yking = newcoord[0], newcoord[1]
-							total+=current
-							current = 'mN '
+					finalCommandsList=[]
+					#IA
+					if self.turns == 1:
+						response = self._stateObjective(peopleCopy, kingsState, (9,8), (7,6), 'm', 5)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
 						else:
-							current = 'mW '
-					metax, metay = xking, yking
-					commands+=total
-					finalCommandsList = self._prettyCommand(commands)
+							print(response[1])
+					elif self.turns == 2:
+						response = self._stateObjective(peopleCopy, kingsState, (7,6), (5,6), 'm', 5)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (3,0), (3,2), 'm', 3)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (7,8), (6,8), 'm', 1)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 3:
+						response = self._stateObjective(peopleCopy, kingsState, (6,8), (2,8), 'm', 5)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+						response = self._stateObjective(peopleCopy, kingsState, (8,8), (7,8), 'm', 1)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					elif self.turns == 4:
+						response = self._stateObjective(peopleCopy, kingsState, (7,8), (3,8), 'm', 5)
+						if response[0]:
+							finalCommandsList += response[1]
+							APknight = response[2]
+							peopleCopy = response[3]
+							kingsState = response[4]
+						else:
+							print(response[1])
+					#moves the king
+					x, y = -1, -1
+					for i in range(len(people)):
+						for j in range(len(people[x])):
+							if people[i][j] == 'king':
+								x, y = i, j
+								break
+						if x>-1:
+							break
+					response = self._stateObjective(peopleCopy, kingsState, (x,y), (4,1), 'm', APking)
+					if response[0]:
+						finalCommandsList += response[1]
+						APking = response[2]
+						peopleCopy = response[3]
+						kingsState = response[4]
+						if APking>=1:
+							response = self._stateObjective(peopleCopy, kingsState, (4,1), (4,0), 'm', APking)
+							if response[0]:
+								finalCommandsList += response[1]
+								APking = response[2]
+								peopleCopy = response[3]
+								kingsState = response[4]
+							else:
+								print(response[1])
+					else:
+						finalCommandsList += response[1]
+						APking = response[2]
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 		except Exception as e:
 			traceback.print_exc(file=sys.stdout)
@@ -887,6 +1023,8 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 			
 			Player can re-select a piece that has already been moved by its new
 			coordinates
+			i.e.: "9 8 mW + 9 7 mW" ENTER
+				  "end" ENTER
 		'''
 		state = state._state['visible']
 		humanMove = sys.stdin.readline()

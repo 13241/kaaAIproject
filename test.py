@@ -26,14 +26,8 @@ print(test)
 
 
 '''
-
-x = -7
-y = 8
-xdir = 'N'
-ydir = 'E'
-objective = 'k'
-basicState = ''.join([
-	abs(x)*''.join(['m',xdir,' ']),
-	(abs(y)-1)*''.join(['m',ydir,' ']),
-	''.join([objective,ydir,' '])])
-print(basicState)
+x = 1
+kx = 0 if x==0 else 1
+ky = 1 if x==0 else 0
+print(kx)
+print(ky)
