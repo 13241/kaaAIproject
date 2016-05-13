@@ -1,5 +1,5 @@
 # kaaAIproject
-The game King and Assassins with AI and launcher
+The game King and Assassins with AI, single player, two players and launcher
 
 On Windows : launch kaalauncher.py
 
@@ -17,6 +17,9 @@ La réflexion sur l'IA en est au stade suivant :
 	utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
 	=> doit encore énormément évoluer
 	
+Vous pouvez jouer au jeu sans IA, pour ce faire, lancez des clients "humanClient"
+et utilisez le commentaire de la methode _nextmove de la classe kingAndAssassinsHumanClient
+pour la syntaxe à utiliser pour jouer les tours
 	
 # processus
 
@@ -47,7 +50,6 @@ reflexion IA.
 réflexion utilisée : 
 
 on commence par parcourir toute la distance en colonnes pour arriver 
-
 à une position verticale par rapport à la cible.
 
 On parcourt ensuite cette distance verticale.
