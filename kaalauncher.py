@@ -10,7 +10,8 @@ import traceback
 
 try:
 	cpuAs = False
-	response = input("Type IA to play IAs, Press ENTER to play yourself\r\n")
+	#response = input("Type IA to play IAs, Press ENTER to play yourself\r\n")
+	response = "IA"
 	client = "humanClient"
 	if response == "IA":
 		client = "client"

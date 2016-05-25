@@ -119,7 +119,6 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		people = visible['people']
 #-###################################################################################################	
 		for move in moves:
-			print(move)
 			# ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
 			if move[0] == 'move':#updatemove
 				x, y, d = int(move[1]), int(move[2]), move[3]
@@ -426,46 +425,50 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	def _getdir(self, movement):#getdir
 		'''
 		returns the DIRECTIONS elements that describe movement for x and y in a tuple
+		WARNING : null values return S-E
 		'''
 		xs, ys = movement[0], movement[1]
 		xdir = 'S' if xs >= 0 else 'N'
 		ydir = 'E' if ys >= 0 else 'W'
 		return (xdir, ydir)
 		
-	def _validMove(self, people, move):#validmovefun
+	def _validMove(self, peopleState, moveList):#validmovefun
 		'''
-		the purpose of this function is to determine whether a move will pass the
+		the purpose of this function is to determine whether a moveList will pass the
 		kingAndAssassinsState._update(...) method without raising an error (except for cost error)
-		it returns a tuple containing 2 parameters : 
-		- the cost of the move
-		- whether the move is legal or not (True/False)
+		it returns a dictionary containing :
+		- the cost of the moveList
+		- whether the moveList is legal or not (True/False)
 		
-		WARNING : a valid move can raise an error in the _update method if there is not enough
-		AP left for this move
+		WARNING : a valid moveList can raise an error in the _update method if there is not enough
+		AP left for this moveList
 		'''
+		returnValue = {'cost':0,'legal':False}
 		player = self._playernb
-		if move[0] == 'move':#validmovemove
-			x, y, d = int(move[1]), int(move[2]), move[3]
+		if moveList[0] == 'move':#validmovemove
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
 			if x<0 or y <0 or x>9 or y>9:
-				return (0,False) #cannot select out of the map
-			p = people[x][y]
+				return returnValue #cannot select out of the map
+			p = peopleState[x][y]
 			if p is None:
-				return (0,False) #there is no one to move
+				return returnValue #there is no one to move
 			nx, ny = self._getcoord((x, y, d))
 			if nx<0 or ny <0 or nx>9 or ny>9:
-				return (0,False) #cannot move/act out of the map
-			new = people[nx][ny]
+				return returnValue #cannot move/act out of the map
+			new = peopleState[nx][ny]
 			if p == 'king' and ((x, y, d) == (2, 2, 'N') or (x, y, d) == (4, 1, 'W')):
-				return (1, True)
+				returnValue['cost']=1
+				returnValue['legal']=True
+				return returnValue
 			# King, assassins, villagers can only move on a free cell
 			if p != 'knight' and new is not None:
-				return (0,False) #cannot move on a cell that is not free
+				return returnValue #cannot move on a cell that is not free
 			if p == 'king' and BOARD[nx][ny] == 'R':
-				return (0,False) #the king cannot move on a roof
+				return returnValue #the king cannot move on a roof
 			if p in {'assassin'} | POPULATION and player != 0:
-				return (0,False) #villagers and assassins can only be moved by player 0
+				return returnValue #villagers and assassins can only be moved by player 0
 			if p in {'king', 'knight'} and player != 1:
-				return (0,False) #the king and knights can only be moved by player 1
+				return returnValue #the king and knights can only be moved by player 1
 			# Move granted if cell is free
 			if new is None:
 				cost = 0
@@ -475,7 +478,9 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					cost = 1 if p == 'assassin' else 2
 				else:
 					cost = 0 if p == 'assassin' else 1
-				return (cost, True)
+				returnValue['cost']=cost
+				returnValue['legal']=True
+				return returnValue
 			# If cell is not free, check if the knight can push villagers
 			else:
 				news = [(x,y)]
@@ -490,188 +495,201 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					nx, ny = self._getcoord((nx, ny, d))
 					if nx<0 or ny<0 or nx>9 or ny>9:
 						break
-					new = people[nx][ny]
+					new = peopleState[nx][ny]
 					if new is None and (BOARD[nx][ny] == 'G' or knightIsUp):
 						pushable = True
 				if pushable:
-					return (1, True)
+					returnValue['cost']=1
+					returnValue['legal']=True
+					return returnValue
 				else:
-					return (0,False) #The knight can not push this way
+					return returnValue #The knight can not push this way
 		# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		elif move[0] == 'arrest':#validmovearrest
+		elif moveList[0] == 'arrest':#validmovearrest
 			if player != 1:
-				return (0,False) #arrest action only possible for player 1
+				return returnValue #arrest action only possible for player 1
 			if not self.CUFFS:
-				return (0,False) #arrest action only possible if the drawn card says so
-			x, y, d = int(move[1]), int(move[2]), move[3]
-			arrester = people[x][y]
+				return returnValue #arrest action only possible if the drawn card says so
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
+			arrester = peopleState[x][y]
 			if arrester != 'knight':
-				return (0,False) #the attacker is not a knight
+				return returnValue #the attacker is not a knight
 			tx, ty = self._getcoord((x, y, d))
-			target = people[tx][ty]
+			target = peopleState[tx][ty]
 			if target not in POPULATION:
-				return (0,False) #only villagers can be arrested
+				return returnValue #only villagers can be arrested
 			if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
-				return (0,False) #arrest action impossible from below
-			return (1, True)				
+				return returnValue #arrest action impossible from below
+			returnValue['cost']=1
+			returnValue['legal']=True
+			return returnValue		
 		# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		elif move[0] == 'kill':#validmovekill
-			x, y, d = int(move[1]), int(move[2]), move[3]
-			killer = people[x][y]
+		elif moveList[0] == 'kill':#validmovekill
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
+			killer = peopleState[x][y]
 			cost = 0
 			if killer == 'assassin' and player != 0:
-				return (0,False) #kill action for assassin only possible for player 0
+				return returnValue #kill action for assassin only possible for player 0
 			if killer == 'knight' and player != 1:
-				return (0,False) #kill action for knight only possible for player 1
+				return returnValue #kill action for knight only possible for player 1
 			tx, ty = self._getcoord((x, y, d))
-			target = people[tx][ty]
+			target = peopleState[tx][ty]
 			if target is None:
-				return (0,False) #there is no one to kill
+				return returnValue #there is no one to kill
 			if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
-				return (0,False) #kill action impossible from below
+				return returnValue #kill action impossible from below
 			if killer == 'assassin' and target == 'knight':
 				cost = 1 + self.TESTSECONDKILL
-				return (cost, True)
+				returnValue['cost']=cost
+				returnValue['legal']=True
+				return returnValue
 			elif killer == 'knight' and target == 'assassin':
-				return (1, True)
+				returnValue['cost']=1
+				returnValue['legal']=True
+				return returnValue
 			else:
-				return (0,False) #forbidden kill
+				return returnValue #forbidden kill
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		elif move[0] == 'attack':#validmoveattack
+		elif moveList[0] == 'attack':#validmoveattack
 			if player != 0:
-				return (0,False) #attack action only possible for player 0
-			x, y, d = int(move[1]), int(move[2]), move[3]
-			attacker = people[x][y]
+				return returnValue #attack action only possible for player 0
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
+			attacker = peopleState[x][y]
 			if attacker != 'assassin':
-				return (0,False) #the attacker is not an assassin
+				return returnValue #the attacker is not an assassin
 			tx, ty = self._getcoord((x, y, d))
-			target = people[tx][ty]
+			target = peopleState[tx][ty]
 			if target != 'king':
-				return (0,False) #only the king can be attacked
-			return (2, True)
+				return returnValue #only the king can be attacked
+			returnValue['cost']=2
+			returnValue['legal']=True
+			return returnValue
 		# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-		elif move[0] == 'reveal':#validmovereveal
+		elif moveList[0] == 'reveal':#validmovereveal
 			if player != 0:
-				return (0,False) #action only possible for player 0
-			x, y = int(move[1]), int(move[2])
-			p = people[x][y]
+				return returnValue #action only possible for player 0
+			x, y = int(moveList[1]), int(moveList[2])
+			p = peopleState[x][y]
 			if p not in hidden['assassins']:
-				return (0,False) #the specified villager is not an assassin
-			return (0, True)
+				return returnValue #the specified villager is not an assassin
+			returnValue['legal']=True
+			return returnValue
 	
-	def _updateCopy(self, people, kingsState, move):#updatecopyfun
+	def _updateCopy(self, peopleState, kingState, moveList):#updatecopyfun
 		'''
-		this method's purpose is to simulate a move on a copy of people positions
+		this method's purpose is to simulate a moveList on a copy of peopleState
 		to check the new state of the game. 
 		
 		Warnings : 
-		The move MUST return True when called with _validMove
-		people may be modified
+		The moveList MUST return True when called with _validMove
+		peopleState may be modified
 		'''
-		if move[0] == 'move':#updatecopymove
-			x, y, d = int(move[1]), int(move[2]), move[3]
-			p = people[x][y]
+		if moveList[0] == 'move':#updatecopymove
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
+			p = peopleState[x][y]
 			nx, ny = self._getcoord((x, y, d))
-			new = people[nx][ny]
+			new = peopleState[nx][ny]
 			# Move granted if cell is free
 			if new is None or p == 'king':
-				people[x][y], people[nx][ny] = people[nx][ny], people[x][y]
+				peopleState[x][y], peopleState[nx][ny] = peopleState[nx][ny], peopleState[x][y]
 			# If cell is not free the knight can push villagers
 			else:
 				news = [(x,y)]
 				while new is not None:
 					news.append((nx,ny))
 					nx, ny = self._getcoord((nx, ny, d))
-					new = people[nx][ny]
+					new = peopleState[nx][ny]
 				while len(news)>0:
 					loc = news.pop()
-					people[loc[0]][loc[1]], people[nx][ny] = people[nx][ny], people[loc[0]][loc[1]]
+					peopleState[loc[0]][loc[1]], peopleState[nx][ny] = peopleState[nx][ny], peopleState[loc[0]][loc[1]]
 					nx, ny = loc[0], loc[1]
 		# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		elif move[0] == 'arrest':#updatecopyarrest
-			x, y, d = int(move[1]), int(move[2]), move[3]
+		elif moveList[0] == 'arrest':#updatecopyarrest
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
 			tx, ty = self._getcoord((x, y, d))
-			people[tx][ty] = None		
+			peopleState[tx][ty] = None		
 		# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		elif move[0] == 'kill':#updatecopykill
-			x, y, d = int(move[1]), int(move[2]), move[3]
-			killer = people[x][y]
+		elif moveList[0] == 'kill':#updatecopykill
+			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
+			killer = peopleState[x][y]
 			tx, ty = self._getcoord((x, y, d))
 			if killer == 'assassin':
 				self.TESTSECONDKILL = 1
-			people[tx][ty] = None
+			peopleState[tx][ty] = None
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		elif move[0] == 'attack':#updatecopyattack
-			kingsState = 'injured' if kingsState == 'healthy' else 'dead'
+		elif moveList[0] == 'attack':#updatecopyattack
+			kingState = 'injured' if kingState == 'healthy' else 'dead'
 		# ('reveal', x, y): reveals villager at position (x,y) as an assassin
-		elif move[0] == 'reveal':#updatecopyreveal
-			x, y = int(move[1]), int(move[2])
-			people[x][y] = 'assassin'
-		return (people, kingsState)
+		elif moveList[0] == 'reveal':#updatecopyreveal
+			x, y = int(moveList[1]), int(moveList[2])
+			peopleState[x][y] = 'assassin'
+		return {'peopleState':peopleState,'kingState':kingState}
 	
-	def _prettyCommands(self, commands):#prettycommandsfun
+	def _prettyCommands(self, movesString):#prettycommandsfun
 		'''
 		this function convert a string command as described in kingAndAssassinsHumanClient class
 		into a list of commands as described in _nextmove from kingAndAssassinsClient class
 		'''
-		finalCommandsList = []
-		commands = commands.strip(' +')
-		commandsList = commands.split(' + ')
-		for i in range(len(commandsList)):
-			commandsList[i] = commandsList[i].split(' ')#regex ' + ' ou '+'
-			x = commandsList[i][0]
-			y = commandsList[i][1]
-			actionsList = commandsList[i][2:len(commandsList[i])]
-			for j in range(len(actionsList)):
-				copyH = copy.copy(actionsList[j])
-				actionsList[j]=[]
+		movesList = []
+		movesString = movesString.strip(' +')
+		movesStringList = movesString.split(' + ')
+		for i in range(len(movesStringList)):
+			movesStringList[i] = movesStringList[i].split(' ')#regex ' + ' ou '+'
+			x = movesStringList[i][0]
+			y = movesStringList[i][1]
+			commandsList = movesStringList[i][2:len(movesStringList[i])]
+			for j in range(len(commandsList)):
+				copyH = copy.copy(commandsList[j])
+				commandsList[j]=[]
 				if copyH[0] in self.CODESACTIONS:
-					actionsList[j].append(self.CODESACTIONS[copyH[0]])
-					actionsList[j].append(x)
-					actionsList[j].append(y)
+					commandsList[j].append(self.CODESACTIONS[copyH[0]])
+					commandsList[j].append(x)
+					commandsList[j].append(y)
 					if copyH[0] != 'r' and len(copyH)==2:
-						actionsList[j].append(copyH[1])
+						commandsList[j].append(copyH[1])
 						if copyH[0] == 'm':
 							x, y = str(int(x)+self.DIRECTIONS[copyH[1]][0]), str(int(y)+self.DIRECTIONS[copyH[1]][1])
-			finalCommandsList+=copy.copy(actionsList)
-		return finalCommandsList
+			movesList+=copy.copy(commandsList)
+		return movesList
 	
-	def _validObjective(self, people, kingsState, coord, commands, AP):#validobjectivefun
+	def _validObjective(self, peopleState, kingState, iPos, commands, APLeft):#validobjectivefun
 		'''
-		this function tests a set of actions (commands) on the piece at coord for the price of AP
-		it returns a tuple :
-		(True, movesList, APremaining, peopleCopy, kingsState) if the set of actions can be done
-		(False, validCommands, APremaining, fatalCommand, lastCoord) if it can not be done
+		this function tests a set of actions (commands) on the piece at iPos for the price of APLeft
+		it returns a dictionary with the following keys :
+		{legal, movesList, APLeft, peopleStateCopy, kingState} if the set of actions can be done
+		{legal, validCommands, APLeft, fatalMoveString, lastValidPosition} if it can not be done
 		
-		people is not modified
+		peopleState is not modified
 		'''
-		moves = str(coord[0])+' '+str(coord[1])+' '+commands
+		movesString = str(iPos[0])+' '+str(iPos[1])+' '+commands
 		validCommands = ''
-		movesList = self._prettyCommands(moves)
-		peopleCopy = copy.deepcopy(people)
+		movesList = self._prettyCommands(movesString)
+		peopleStateCopy = copy.deepcopy(peopleState)
 		for i in range(len(movesList)):
-			response = self._validMove(peopleCopy, movesList[i])
-			if response[1] and AP-response[0]>=0:
-				AP-=response[0]
-				peopleCopy, kingsState = self._updateCopy(peopleCopy, kingsState, movesList[i])
+			validMove = self._validMove(peopleStateCopy, movesList[i])
+			if validMove['legal'] and APLeft-validMove['cost']>=0:
+				APLeft-=validMove['cost']
+				updateCopy= self._updateCopy(peopleStateCopy, kingState, movesList[i])
+				peopleStateCopy, kingState = updateCopy['peopleState'], updateCopy['kingState']
 				validCommands=commands[0:3*i+3]
 			else:
-				loc = (movesList[i][1], movesList[i][2])
-				return (False, validCommands, AP, commands[3*i:3*i+3], loc)
-		return (True, movesList, AP, peopleCopy, kingsState)
+				fPos = (movesList[i][1], movesList[i][2])
+				return {'legal':False, 'validCommands':validCommands, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3], 'lastValidPosition':fPos}
+		return {'legal':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleStateCopy':peopleStateCopy, 'kingState':kingState}
 	
-	def _stateObjective(self, people, kingsState, coord, target, objective, AP):#stateobjectivefun
+	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#stateobjectivefun
 		'''
-		this function searches for a path to accomplish objective at position target from position coord with AP on people
+		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
 		'''
 		#etat actuel : PathFinding pour le ROI et les VILLAGEOIS (non assassins)
 		#utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
 		#=> doit encore énormément évoluer
 		#=> sera certainement dédoublée plusieurs fois pour correspondre à une stratégie de pathfinding propre à chaque pion
-		#=> penser à retourner un dictionnaire plutot qu'un tuple pour plus de lisibilité....
-		if coord == target:
-			return (True, [], AP, people, kingsState, coord)
-		x, y = target[0]-coord[0], target[1]-coord[1]
+		if iPos == fPos and objective == 'm':
+			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState, 'lastPosition':iPos}
+		elif iPos == fPos and objective != 'm':
+			return None #erreur, on essaye d'effectuer une action autre que deplacement sur la case ou on se trouve => probleme majeur de l'IA
+		x, y = fPos[0]-iPos[0], fPos[1]-iPos[1]
 		xdir, ydir = self._getdir((x,y))
 		metadir = ydir if x==0 else xdir
 		kx = 0 if x==0 else 1
@@ -681,24 +699,32 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			(abs(x)-kx)*''.join(['m',xdir,' ']),
 			''.join([objective,metadir,' '])])
 		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
-		response = self._validObjective(people, kingsState, coord, stated, AP)
-		ended = response[0]
+		validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
+		ended = validObjective['legal']
 		forceEnded = False
 		longestValidCommands = ''
 		while not ended:
-			validCommands = response[1]
+			validCommands = validObjective['validCommands']
 			longestValidCommands =validCommands if len(validCommands)>len(longestValidCommands) else longestValidCommands
 			ydone = validCommands.count(''.join(['m',ydir]))
 			xdone = validCommands.count(''.join(['m',xdir]))
-			APleft = response[2]
-			fatalCommand = response[3]
-			fatalCoord = response[4]
-			if fatalCommand[1]==ydir and (abs(x)-xdone-1 >=1 or abs(y)-ydone == 1):
-				if abs(y)-ydone ==1:
-					stated = ''.join([
-						validCommands,
-						(abs(x)-xdone)*''.join(['m',xdir,' ']),
-						''.join([objective,ydir,' '])])
+			APLeft = validObjective['APLeft']
+			fatalCommand = validObjective['fatalMoveString']
+			fatalCoord = validObjective['lastValidPosition']
+			if fatalCommand[1]==ydir and abs(x)-xdone >=1:
+				if abs(y)-ydone == 1:
+					if abs(x)-xdone == 1:
+						stated = ''.join([
+							validCommands,
+							''.join(['m',xdir,' ']),
+							''.join([objective,ydir,' '])])
+					else:
+						stated = ''.join([
+							validCommands,
+							''.join(['m',xdir,' ']),
+							''.join(['m',ydir,' ']),
+							(abs(x)-xdone-2)*''.join(['m',xdir,' ']),
+							''.join([objective,xdir,' '])])
 				else:
 					xdone+=1
 					stated = ''.join([
@@ -709,6 +735,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 						''.join([objective,xdir,' '])])
 			elif fatalCommand[1]==xdir and abs(x)-xdone >=2 and validCommands.count(''.join(['m',ydir,' '])) > 0:
 				xdone+=2
+				ydone-=1
 				lastyid = validCommands.rfind(''.join(['m',ydir,' ']))
 				beforelastyid = validCommands[0:lastyid]
 				afterlastyid = validCommands[lastyid+3:len(validCommands)]
@@ -724,7 +751,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 							beforelastyid,
 							afterlastyid,
 							2*''.join(['m',xdir,' ']),
-							''.join(['m',ydir,' ']),
 							(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
 							''.join([objective,ydir,' '])])
 				else:
@@ -732,7 +758,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 						beforelastyid,
 						afterlastyid,
 						2*''.join(['m',xdir,' ']),
-						''.join(['m',ydir,' ']),
 						(abs(y)-ydone)*''.join(['m',ydir,' ']),
 						(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
 						''.join([objective,xdir,' '])])
@@ -740,23 +765,23 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				forceEnded = True
 				break
 			#fin de boucle
-			response = self._validObjective(people, kingsState, coord, stated, AP)
-			ended = response[0]
+			validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
+			ended = validObjective['legal']
 		#move impossible
 		if forceEnded:
 			reason = 'notFullyCompleted'#a modifier
 #-###################################################################################################
 			if longestValidCommands != '':
-				return (False, self._prettyCommands(str(coord[0])+' '+str(coord[1])+' '+longestValidCommands), APleft, reason)
+				return {'completed':False, 'movesList':self._prettyCommands(str(iPos[0])+' '+str(iPos[1])+' '+longestValidCommands), 'APLeft':APLeft, 'error':reason}
 			else:
-				return (False, [], APleft, reason)
+				return {'completed':False, 'movesList':[], 'APLeft':APLeft, 'error':reason}
 		#move validé
-		movesList = response[1]
-		APleft = response[2]
-		people = response[3]
-		kingsState = response[4]
-		newcoord = target if objective == 'm' else (response[1][len(response[1])][1], response[1][len(response[1])][2])
-		return (ended, movesList, APleft, people, kingsState, newcoord)
+		movesList = validObjective['movesList']
+		APLeft = validObjective['APLeft']
+		peopleState = validObjective['peopleStateCopy']
+		kingState = validObjective['kingState']
+		newcoord = fPos if objective == 'm' else (movesList[len(movesList)][1], movesList[len(movesList)][2])
+		return {'completed':ended, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState, 'lastPosition':newcoord}
 	
 	def _nextmove(self, state):#nextmovefun
 		'''
@@ -773,16 +798,16 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''
 		try:
 			state = state._state['visible']
-			people = state['people']
-			peopleCopy = copy.deepcopy(people)
-			kingsState = state['king']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
 			self.turns+=1
 			if state['card'] is None:
 				self.turns-=1
-				self.assassins.append(people[7][1])
-				self.assassins.append(people[1][7])
-				self.assassins.append(people[2][1])
-				return json.dumps({'assassins': [people[7][1], people[1][7], people[2][1]]}, separators=(',', ':'))
+				self.assassins.append(peopleState[7][1])
+				self.assassins.append(peopleState[1][7])
+				self.assassins.append(peopleState[2][1])
+				return json.dumps({'assassins': [peopleState[7][1], peopleState[1][7], peopleState[2][1]]}, separators=(',', ':'))
 			else:
 				APking = state['card'][0]
 				APcom = state['card'][1]
@@ -792,165 +817,165 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					finalCommandsList=[]
 					#IA
 					if self.turns == 1:
-						response = self._stateObjective(peopleCopy, kingsState, (8,3), (5,4), 'm', 4)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (8,3), (5,4), 'm', 4)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 2:
-						response = self._stateObjective(peopleCopy, kingsState, (5,2), (4,3), 'm', 4)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (5,2), (4,3), 'm', 4)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (3,6), (1,6), 'm', 2)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (3,6), (1,6), 'm', 2)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 3:
-						response = self._stateObjective(peopleCopy, kingsState, (2,1), (2,2), 'm', 4)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (2,1), (2,2), 'm', 4)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (3,4), (1,4), 'm', 3)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (3,4), (1,4), 'm', 3)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 4:
-						response = self._stateObjective(peopleCopy, kingsState, (7,5), (6,5), 'm', 4)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (7,5), (6,5), 'm', 4)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (5,5), (2,5), 'm', 3)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (5,5), (2,5), 'm', 3)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 5:
-						response = self._stateObjective(peopleCopy, kingsState, (5,7), (4,7), 'm', 4)
-						if response[0]:
-							finalCommandsList += response[1]
-							APcom = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (5,7), (4,7), 'm', 4)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APcom = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 				else:
 					finalCommandsList=[]
 					#IA
 					if self.turns == 1:
-						response = self._stateObjective(peopleCopy, kingsState, (9,8), (7,6), 'm', 5)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (9,8), (7,6), 'm', 5)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 2:
-						response = self._stateObjective(peopleCopy, kingsState, (7,6), (5,6), 'm', 5)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (7,6), (5,6), 'm', 5)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (3,0), (3,2), 'm', 3)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (3,0), (3,2), 'm', 3)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (7,8), (6,8), 'm', 1)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (7,8), (6,8), 'm', 1)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 3:
-						response = self._stateObjective(peopleCopy, kingsState, (6,8), (2,8), 'm', 5)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (6,8), (2,8), 'm', 5)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
-						response = self._stateObjective(peopleCopy, kingsState, (8,8), (7,8), 'm', 1)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+							print(stateObjective['movesList'])
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (8,8), (7,8), 'm', 1)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					elif self.turns == 4:
-						response = self._stateObjective(peopleCopy, kingsState, (7,8), (3,8), 'm', 5)
-						if response[0]:
-							finalCommandsList += response[1]
-							APknight = response[2]
-							peopleCopy = response[3]
-							kingsState = response[4]
+						stateObjective = self._stateObjective(peopleStateCopy, kingState, (7,8), (3,8), 'm', 5)
+						if stateObjective['completed']:
+							finalCommandsList += stateObjective['movesList']
+							APknight = stateObjective['APLeft']
+							peopleStateCopy = stateObjective['peopleState']
+							kingState = stateObjective['kingState']
 						else:
-							print(response[1])
+							print(stateObjective['movesList'])
 					#moves the king
 					x, y = -1, -1
-					for i in range(len(people)):
-						for j in range(len(people[x])):
-							if people[i][j] == 'king':
+					for i in range(len(peopleState)):
+						for j in range(len(peopleState[x])):
+							if peopleState[i][j] == 'king':
 								x, y = i, j
 								break
 						if x>-1:
 							break
-					response = self._stateObjective(peopleCopy, kingsState, (x,y), (4,1), 'm', APking)
-					if response[0]:
-						finalCommandsList += response[1]
-						APking = response[2]
-						peopleCopy = response[3]
-						kingsState = response[4]
+					stateObjective = self._stateObjective(peopleStateCopy, kingState, (x,y), (4,1), 'm', APking)
+					if stateObjective['completed']:
+						finalCommandsList += stateObjective['movesList']
+						APking = stateObjective['APLeft']
+						peopleStateCopy = stateObjective['peopleState']
+						kingState = stateObjective['kingState']
 						if APking>=1:
-							response = self._stateObjective(peopleCopy, kingsState, (4,1), (4,0), 'm', APking)
-							if response[0]:
-								finalCommandsList += response[1]
-								APking = response[2]
-								peopleCopy = response[3]
-								kingsState = response[4]
+							stateObjective = self._stateObjective(peopleStateCopy, kingState, (4,1), (4,0), 'm', APking)
+							if stateObjective['completed']:
+								finalCommandsList += stateObjective['movesList']
+								APking = stateObjective['APLeft']
+								peopleStateCopy = stateObjective['peopleState']
+								kingState = stateObjective['kingState']
 							else:
-								print(response[1])
+								print(stateObjective['movesList'])
 					else:
-						finalCommandsList += response[1]
-						APking = response[2]
+						finalCommandsList += stateObjective['movesList']
+						APking = stateObjective['APLeft']
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 		except Exception as e:
 			traceback.print_exc(file=sys.stdout)
