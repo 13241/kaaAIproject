@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # kingandassassins.py
 # Author: Sébastien Combéfis, Damien Abeloos
-# Version: May 13, 2016
+# Version: May 28, 2016
 
 #top
 import argparse
@@ -11,72 +11,146 @@ import socket
 import sys
 import traceback
 import copy
+import time
 #-###################################################################################################
 
 from lib import game
 
 BUFFER_SIZE = 2048
 
-CARDS = (
-	# (AP King, AP Knight, Fetter, AP Population/Assassins)
-	(1, 6, True, 5),
-	(1, 5, False, 4),
-	(1, 6, True, 5),
-	(1, 6, True, 5),
-	(1, 5, True, 4),
-	(1, 5, False, 4),
-	(2, 7, False, 5),
-	(2, 7, False, 4),
-	(1, 6, True, 5),
-	(1, 6, True, 5),
-	(2, 7, False, 5),
-	(2, 5, False, 4),
-	(1, 5, True, 5),
-	(1, 5, False, 4),
-	(1, 5, False, 4)
-)
+CARDS = None
+POPULATION = None
+BOARD = None
+KNIGHTS = None
+VILLAGERS = None
+PEOPLE = None
+metaX = None
+metaY = None
+metaAP = None
+metaDET = None
+metaI = None
+metaJ = None
 
-POPULATION = {
-	'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
-	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
-}
+class GlobalVariableAffectation():
+	TEST = ''#"test1"
+	global CARDS 
+	global POPULATION 
+	global BOARD 
+	global KNIGHTS 
+	global VILLAGERS 
+	global PEOPLE 
+	global metaX
+	global metaY
+	global metaAP
+	global metaDET
+	global metaI
+	global metaJ
+	if TEST == "test1":
+		
+		POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
+		
+		BOARD = (
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+		)
+		
+		KNIGHTS = {}
+		
+		metaI, metaJ = 4,4
+		metaX, metaY = 8,8
+		VILLAGERS = {(metaI,metaJ), (0,3), (1,3), (2,2), (3,4), (4,5), (4,7),
+			(5,0), (5,1), (5,2), (5,3), (5,4), (5,7), (6,6), (7,1), (7,2),
+			(7,3), (7,4), (7,5), (7,7), (7,8), (8,1),
+			(8,9), (9,8), (9,9)}
+		metaDET = 10
+		metaAP = 28
+		
+		CARDS = (
+			# (AP King, AP Knight, Fetter, AP Population/Assassins)
+			(100, 100, True, metaAP),
+			(100, 100, True, metaAP)
+		)
+		
+		PEOPLE = [[None for column in range(10)] for row in range(10)]
+		
+		for coord in KNIGHTS:
+			PEOPLE[coord[0]][coord[1]] = 'knight'
+			
+		for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+			PEOPLE[coord[0]][coord[1]] = villager
+			
+	else:
+		CARDS = (
+			# (AP King, AP Knight, Fetter, AP Population/Assassins)
+			(1, 6, True, 5),
+			(1, 5, False, 4),
+			(1, 6, True, 5),
+			(1, 6, True, 5),
+			(1, 5, True, 4),
+			(1, 5, False, 4),
+			(2, 7, False, 5),
+			(2, 7, False, 4),
+			(1, 6, True, 5),
+			(1, 6, True, 5),
+			(2, 7, False, 5),
+			(2, 5, False, 4),
+			(1, 5, True, 5),
+			(1, 5, False, 4),
+			(1, 5, False, 4)
+		)
 
-BOARD = (
-	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
-	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
-	('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
-	('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-	('R', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-	('G', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-	('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-	('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-	('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-	('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
-)
+		POPULATION = {
+			'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
+			'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
+		}
 
-# Coordinates of pawns on the board
-KNIGHTS = {(1, 3), (3, 0), (7, 8), (8, 7), (8, 8), (8, 9), (9, 8)}
-VILLAGERS = {
-	(1, 7), (2, 1), (3, 4), (3, 6), (5, 2), (5, 5),
-	(5, 7), (5, 9), (7, 1), (7, 5), (8, 3), (9, 5)
-}
+		BOARD = (
+			('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
+			('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
+			('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
+			('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('R', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+			('G', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+			('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+			('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+			('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+			('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+		)
 
-# Separate board containing the position of the pawns
-PEOPLE = [[None for column in range(10)] for row in range(10)]
+		# Coordinates of pawns on the board
+		KNIGHTS = {(1, 3), (3, 0), (7, 8), (8, 7), (8, 8), (8, 9), (9, 8)}
 
-# Place the king in the right-bottom corner
-PEOPLE[9][9] = 'king'
+		VILLAGERS = {
+			(1, 7), (2, 1), (3, 4), (3, 6), (5, 2), (5, 5),
+			(5, 7), (5, 9), (7, 1), (7, 5), (8, 3), (9, 5)
+		}
 
-# Place the knights on the board
-for coord in KNIGHTS:
-	PEOPLE[coord[0]][coord[1]] = 'knight'
+		# Separate board containing the position of the pawns
+		PEOPLE = [[None for column in range(10)] for row in range(10)]
 
-# Place the villagers on the board
-# random.sample(A, len(A)) returns a list where the elements are shuffled
-# this randomizes the position of the villagers
-for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
-	PEOPLE[coord[0]][coord[1]] = villager
-	
+		# Place the king in the right-bottom corner
+		PEOPLE[9][9] = 'king'
+
+		# Place the knights on the board
+		for coord in KNIGHTS:
+			PEOPLE[coord[0]][coord[1]] = 'knight'
+
+		# Place the villagers on the board
+		# random.sample(A, len(A)) returns a list where the elements are shuffled
+		# this randomizes the position of the villagers
+		for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+			PEOPLE[coord[0]][coord[1]] = villager
+
+
+
 KA_INITIAL_STATE = {
 	'board': BOARD,
 	'people': PEOPLE,
@@ -117,7 +191,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		people = visible['people']
-#-###################################################################################################	
+#-###################################################################################################
 		for move in moves:
 			# ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
 			if move[0] == 'move':#updatemove
@@ -422,7 +496,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''
 		return tuple(coord[i] + self.DIRECTIONS[coord[2]][i] for i in range(2))
 	
-	def _getdir(self, movement):#getdir
+	def _getdir(self, movement):#getdirfun
 		'''
 		returns the DIRECTIONS elements that describe movement for x and y in a tuple
 		WARNING : null values return S-E
@@ -431,7 +505,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		xdir = 'S' if xs >= 0 else 'N'
 		ydir = 'E' if ys >= 0 else 'W'
 		return (xdir, ydir)
-		
+	
+	def _getopposite(self, dir):#getoppositefun
+		oppositeDir = 'NS'.strip(dir)
+		oppositeDir = 'WE'.strip(dir) if len(oppositeDir)==2 else oppositeDir
+		oppositeDir = '' if len(oppositeDir)==2 else oppositeDir
+		return oppositeDir
+	
 	def _validMove(self, peopleState, moveList):#validmovefun
 		'''
 		the purpose of this function is to determine whether a moveList will pass the
@@ -674,10 +754,11 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				validCommands=commands[0:3*i+3]
 			else:
 				fPos = (movesList[i][1], movesList[i][2])
-				return {'legal':False, 'validCommands':validCommands, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3], 'lastValidPosition':fPos}
+				return {'legal':False, 'validCommands':validCommands, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3],
+					'lastValidPosition':fPos}
 		return {'legal':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleStateCopy':peopleStateCopy, 'kingState':kingState}
 	
-	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#stateobjectivefun
+	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, nDetour = 0, dirPrevious = ''):#stateobjectivefun
 		'''
 		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
 		'''
@@ -685,12 +766,15 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		#utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
 		#=> doit encore énormément évoluer
 		#=> sera certainement dédoublée plusieurs fois pour correspondre à une stratégie de pathfinding propre à chaque pion
+		#=> WARNING : cette fonction est récursive
 		if iPos == fPos and objective == 'm':
-			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState, 'lastPosition':iPos}
-		elif iPos == fPos and objective != 'm':
-			return None #erreur, on essaye d'effectuer une action autre que deplacement sur la case ou on se trouve => probleme majeur de l'IA
+			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState,
+				'lastPosition':iPos}
+		elif iPos == fPos and objective != 'm' and objective != 'r':
+			return None #erreur, on essaye d'effectuer une action autre que deplacement sur la case ou on se trouve
 		x, y = fPos[0]-iPos[0], fPos[1]-iPos[1]
 		xdir, ydir = self._getdir((x,y))
+		ixdir, iydir = self._getopposite(xdir), self._getopposite(ydir)
 		metadir = ydir if x==0 else xdir
 		kx = 0 if x==0 else 1
 		ky = 1 if x==0 else 0
@@ -699,18 +783,103 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			(abs(x)-kx)*''.join(['m',xdir,' ']),
 			''.join([objective,metadir,' '])])
 		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
-		validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
-		ended = validObjective['legal']
+		firstReturn = False
+		if stated[1] == dirPrevious:
+			ended = False
+			validCommands = ''
+			ydone = 0
+			xdone = 0
+			APLeft = APAvailable
+			fatalCommand = stated[:3]
+			fatalCoord = iPos
+			firstReturn = True
+		else:
+			validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
+			ended = validObjective['legal']
 		forceEnded = False
+		detourEnded = False
 		longestValidCommands = ''
 		while not ended:
-			validCommands = validObjective['validCommands']
-			longestValidCommands =validCommands if len(validCommands)>len(longestValidCommands) else longestValidCommands
-			ydone = validCommands.count(''.join(['m',ydir]))
-			xdone = validCommands.count(''.join(['m',xdir]))
-			APLeft = validObjective['APLeft']
-			fatalCommand = validObjective['fatalMoveString']
-			fatalCoord = validObjective['lastValidPosition']
+			if not firstReturn :
+				validCommands = validObjective['validCommands']
+				longestValidCommands =validCommands if len(validCommands)>len(longestValidCommands) else longestValidCommands
+				ydone = validCommands.count(''.join(['m',ydir]))
+				xdone = validCommands.count(''.join(['m',xdir]))
+				APLeft = validObjective['APLeft']
+				fatalCommand = validObjective['fatalMoveString']
+				fatalCoord = validObjective['lastValidPosition']
+				dirPrevious = self._getopposite(validCommands[-2:].strip(' ')) if validCommands != '' else dirPrevious
+			else:
+				firstReturn = False
+			'''debug purposes
+			print("fcoord = "+str(fatalCoord))
+			print("fcmd   = "+str(fatalCommand))
+			print("ndtour = "+str(nDetour))
+			print("dprev  = "+str(dirPrevious))
+			'''
+			if nDetour>0:
+				if fatalCommand[1]==xdir:
+					tryOppositeDirection = False
+					if abs(y)-ydone == 0:
+						if ydir != dirPrevious:
+							detour = ''.join(['m',ydir,' '])
+							detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
+							tryOppositeDirection = not detourObjective['legal']
+							if detourObjective['legal']:
+								newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), 
+									int(detourObjective['movesList'][-1][2]), detourObjective['movesList'][-1][3]))
+								dirPrevious = self._getopposite(ydir)
+								statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], 
+									detourObjective['kingState'], newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+								tryOppositeDirection = not statedDetourObjective['completed']
+								if statedDetourObjective['completed']:
+									detourEnded = True
+									break
+						else:
+							tryOppositeDirection = True
+					if (abs(y)-ydone > 0 or tryOppositeDirection) and iydir != dirPrevious:
+						detour = ''.join(['m',iydir,' '])
+						detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
+						if detourObjective['legal']:
+							newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
+								detourObjective['movesList'][-1][3]))
+							dirPrevious = self._getopposite(iydir)
+							statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
+								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+							if statedDetourObjective['completed']:
+								detourEnded = True
+								break
+				elif fatalCommand[1]==ydir:
+					tryOppositeDirection = False
+					if abs(x)-xdone == 0:
+						if xdir != dirPrevious:
+							detour = ''.join(['m',xdir,' '])
+							detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
+							tryOppositeDirection = not detourObjective['legal']
+							if detourObjective['legal']:
+								newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
+									detourObjective['movesList'][-1][3]))
+								dirPrevious = self._getopposite(xdir)
+								statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
+									newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+								tryOppositeDirection = not statedDetourObjective['completed']
+								if statedDetourObjective['completed']:
+									detourEnded = True
+									break
+						else:
+							tryOppositeDirection = True
+					if (abs(x)-xdone > 0 or tryOppositeDirection) and ixdir != dirPrevious:
+						detour = ''.join(['m',ixdir,' '])
+						detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
+						if detourObjective['legal']:
+							newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
+								detourObjective['movesList'][-1][3]))
+							dirPrevious = self._getopposite(ixdir)
+							statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
+								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+							if statedDetourObjective['completed']:
+								detourEnded = True
+								break
 			if fatalCommand[1]==ydir and abs(x)-xdone >=1:
 				if abs(y)-ydone == 1:
 					if abs(x)-xdone == 1:
@@ -772,18 +941,62 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			reason = 'notFullyCompleted'#a modifier
 #-###################################################################################################
 			if longestValidCommands != '':
-				return {'completed':False, 'movesList':self._prettyCommands(str(iPos[0])+' '+str(iPos[1])+' '+longestValidCommands), 'APLeft':APLeft, 'error':reason}
+				return {'completed':False, 'movesList':self._prettyCommands(str(iPos[0])+' '+str(iPos[1])+' '+longestValidCommands),
+					'APLeft':APLeft, 'error':reason}
 			else:
 				return {'completed':False, 'movesList':[], 'APLeft':APLeft, 'error':reason}
-		#move validé
-		movesList = validObjective['movesList']
-		APLeft = validObjective['APLeft']
-		peopleState = validObjective['peopleStateCopy']
-		kingState = validObjective['kingState']
-		newcoord = fPos if objective == 'm' else (movesList[len(movesList)][1], movesList[len(movesList)][2])
-		return {'completed':ended, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState, 'lastPosition':newcoord}
+		elif detourEnded:
+			movesList = detourObjective['movesList']+statedDetourObjective['movesList']
+			APLeft = statedDetourObjective['APLeft']
+			peopleState = statedDetourObjective['peopleState']
+			kingState = statedDetourObjective['kingState']
+			newcoord = fPos if objective == 'm' else (movesList[-1][1], movesList[-1][2])
+			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
+				'lastPosition':newcoord}
+		else:
+			#move validé
+			movesList = validObjective['movesList']
+			APLeft = validObjective['APLeft']
+			peopleState = validObjective['peopleStateCopy']
+			kingState = validObjective['kingState']
+			newcoord = fPos if objective == 'm' else (movesList[-1][1], movesList[-1][2])
+			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
+				'lastPosition':newcoord}
 	
-	def _nextmove(self, state):#nextmovefun
+	def _nextmoveTEST1(self, state):#nextmovefun
+		global metaX
+		global metaY
+		global metaAP
+		global metaDET
+		global metaI
+		global metaJ
+		try:
+			state = state._state['visible']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
+			self.turns+=1
+			if state['card'] is None:
+				self.turns-=1
+				return json.dumps({'assassins': [peopleState[8][9], peopleState[9][8], peopleState[9][9]]}, separators=(',', ':'))
+			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
+				if self._playernb == 0:
+					finalCommandsList = []
+					stateObjective = self._stateObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', metaAP, metaDET)
+					finalCommandsList += stateObjective['movesList']
+					print(stateObjective['APLeft'])
+					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
+				else:
+					return json.dumps({'actions': []}, separators=(',', ':'))
+		except Exception as e:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")
+	
+	def _nextmove(self, state):#nextmovedrunkheartfun
 		'''
 		 Two possible situations:
 		 - If the player is the first to play, it has to select his/her assassins
@@ -992,10 +1205,7 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 			'S': (1, 0),
 			'N': (-1, 0)
 		}
-		self.POPULATION = {
-			'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
-			'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
-		}
+		self.POPULATION = POPULATION
 		self.__name = name
 		super().__init__(server, KingAndAssassinsState, verbose=verbose)
 
@@ -1099,6 +1309,7 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 				
 if __name__ == '__main__':#main
 	# Create the top-level parser
+	tic = time.time()
 	parser = argparse.ArgumentParser(description='King & Assassins game')
 	subparsers = parser.add_subparsers(
 		description='server client',
@@ -1129,8 +1340,10 @@ if __name__ == '__main__':#main
 	# Parse the arguments of sys.args
 	args = parser.parse_args()
 
+	GlobalVariableAffectation()
 	if args.component == 'server':
 		KingAndAssassinsServer(verbose=args.verbose).run()
+		print(time.time()-tic)
 	elif args.component == 'client':
 		KingAndAssassinsClient(args.name, (args.host, args.port), verbose=args.verbose)
 	elif args.component == 'humanClient':

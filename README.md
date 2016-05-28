@@ -69,3 +69,22 @@ On reprend l'algorithme de base.
 les villageois et les chevaliers se mettent en formation "coeur", c'est la
 fête. Le roi, ivre, décide de rentrer au chateau en zigzaguant dans la foule.
 Les assassins font la grêve.
+
+# UPDATE 28/05/2016
+
+CERTAINES INFORMATIONS MENTIONEES CI-DESSUS PEUVENT ETRE OBSOLETES
+
+Le PATHFINDING (methode _stateObjective) gère désormais les détours, peu
+importe le nombre.
+
+GROS aménagement du code principal pour effectuer des tests de pathfinding, 
+En dehors des tests, toutes les méthodes restent compatibles avec la mise en 
+forme précédente. (les nouvelles variables globales n'ont pas d'impact hors test)
+
+Pour effectuer un test, donner le nom du test à la variable TEST
+de la classe GlobalVariableAffectation, renommer la methode _nextmoveTEST
+de la classe KingAndAssassinsClient en _nextmove (et donner un autre nom
+à _nextmove actuel, lancer le jeu en mode IA. Un schéma de test1 se trouve
+dans réflexion IA.xlsx
+
+Les commentaires ne sont plus à jour.
