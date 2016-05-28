@@ -32,7 +32,7 @@ metaI = None
 metaJ = None
 
 class GlobalVariableAffectation():
-	TEST = ''#"test1"
+	TEST = "test1"
 	global CARDS 
 	global POPULATION 
 	global BOARD 
@@ -963,7 +963,22 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':newcoord}
 	
-	def _nextmoveTEST1(self, state):#nextmovefun
+	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#minimizeobjectivefun
+		'''
+		this function try to accomplish objective with a minimal amount of AP within APAvailable
+		it is made to work with the worst case scenario : a revealed assassin on a checkboard with 'G' to 'R' squares
+		it is by no mean time-optimized : it works pretty badly with APAvailable > 7
+		'''
+		for AP in range(APAvailable):
+			nDetour = AP-1 if AP>1 else 0
+			for detour in range(nDetour+1):
+				stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour)
+				print(str(AP)+' '+str(detour))
+				if stateObjective['completed']:
+					return stateObjective
+		return stateObjective
+	
+	def _nextmove(self, state):#nextmovefun
 		global metaX
 		global metaY
 		global metaAP
@@ -996,7 +1011,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 	
-	def _nextmove(self, state):#nextmovedrunkheartfun
+	def _nextmoveDrunkHeart(self, state):#nextmovedrunkheartfun
 		'''
 		 Two possible situations:
 		 - If the player is the first to play, it has to select his/her assassins
