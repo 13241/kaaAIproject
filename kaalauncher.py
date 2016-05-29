@@ -16,12 +16,14 @@ try:
 		"2ias or nothing = IA vs IA \r\n",
 		"test1 = run Test1 \r\n"]))
 	#response = "IA"
+	server = "server"
 	client = "client"
 	file = " kingandassassins.py "
 	if response == "2players":
 		client = "humanClient"
-	elif response == "test1":
-		client = "test1Client"
+	elif response.count("test")==1:
+		server = response+"Server"
+		client = response+"Client"
 		file = " test.py "
 	if myPlatform =="win32":
 		'''Windows'''
@@ -33,7 +35,7 @@ try:
 		cpuAs = True
 	if cpuAs:
 		host = str(socket.gethostname())
-		[Popen((command+file+"server --verbose").split())]
+		[Popen((command+file+server+" --verbose").split())]
 		optA = command+file+client+" a --host "+host+" --verbose"
 		optB = command+file+client+" b --host "+host+" --verbose"
 		cpuAs = True#random.randint(0,1)
