@@ -1,0 +1,77 @@
+*>current
+
+liste de priorités, liste par priorité ? combien de niveaux de priorité?
+
+
+trouver le chemin ayant un cout minimal => donner les détours un par un
+en commençant par 0 jusque ? limite => ne regle pas tout, un chemin de la
+meme distance peut etre moins cher qu'un autre
+=> donner les AP en partant de 0 + x detour => 
+normal : 2*x+2
+damier assassin : x+1 => règle prédominante (moins de perf pour les non assassins)
+damier autre : 3*x+3
+
+gérer les pushs des chevaliers avec la methode de pathfinding ? problemes ?
+
+
+
+adapter le nom des variables dans les methodes pour plus de coherence
+
+
+#corrige => transformer tous les tuples des méthodes multi-retour en dictionnaires
+	et adapter en conséquence. (fastidieux mais nécessaire pour la lisibilité
+	et la cohérence)
+#corrige => rien ne gere le cout des actions?
+#corrige => rien ne gere l'autorisation d'arreter des chevaliers?
+#corrige => rien ne gere le push des chevaliers
+#corrige => les indices negatifs sont possibles (teleport du chevalier de l'autre cote de la map)
+#corrige => kill/arrest d'en bas?
+
+mouvements roi : 19 (11*1 + 4*2)
+mouvements che : 91 ( 8*5 + 5*6 + 3*7)
+mouvements vil : 68 ( 8*5 + 7*4)
+captures       :  7 (5*165 + 1*154 + 1*155)
+
+WARNING = ABORTKILL en cas d'annulation d'une série de move ou on kill sera toujours a 1
+if assassinKill in serial:
+	ABORTKILL = True
+
+if abort and ABORTKILL :
+	ABORTKILL = False
+	TESTSECONDKILL = 0
+if VALIDATE :
+	ABORTKILL = False
+
+
+Move: {"assassins":["monk","hooker","fishwoman"]}
+Move: {"actions":[]}
+
+all : {"actions":[["move",9,8,"W"]]}
+assa: {"actions":[["reveal",y,x]]}
+assa: {"actions":[["attack",y,x,dir]]}
+knig: {"actions":[["arrest",y,x,dir]]}
+askn: {"actions":[["kill",y,x,dir]]}
+
+dir: WNES
+y,x:: [0,9]
+assassins: 'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
+	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
+
+G - G = 1 \ALL
+R - R = 1 \ALL
+R - G = 1 \ALL/ASSASSIN (king is already treated)
+R - G = 0 \ASSASSIN
+G - R = 2 \ALL/ASSASSIN (king is already treated)
+G - R = 1 \ASSASSIN
+
+assassins : 7 1, 2 1, 1 7
+
+algorithme : 
+evaluer la zone de danger pour les pions intéressants du joueur
+eviter les dangers si possible (en reculant ou en eliminant la source du danger)
+mouvement de base assassins => en position
+chevaliers se deplacent pour laisser passer le roi
+roi se deplace vers une porte
+
+avant chaque deplacement, evaluer les nouveaux dangers si besoin (surtout pour le roi)
+assassins préfèrent reculer, sauf si attaque sur le roi possible

@@ -18,138 +18,66 @@ from lib import game
 
 BUFFER_SIZE = 2048
 
-CARDS = None
-POPULATION = None
-BOARD = None
-KNIGHTS = None
-VILLAGERS = None
-PEOPLE = None
-metaX = None
-metaY = None
-metaAP = None
-metaDET = None
-metaI = None
-metaJ = None
+CARDS = (
+	# (AP King, AP Knight, Fetter, AP Population/Assassins)
+	(1, 6, True, 5),
+	(1, 5, False, 4),
+	(1, 6, True, 5),
+	(1, 6, True, 5),
+	(1, 5, True, 4),
+	(1, 5, False, 4),
+	(2, 7, False, 5),
+	(2, 7, False, 4),
+	(1, 6, True, 5),
+	(1, 6, True, 5),
+	(2, 7, False, 5),
+	(2, 5, False, 4),
+	(1, 5, True, 5),
+	(1, 5, False, 4),
+	(1, 5, False, 4)
+)
 
-class GlobalVariableAffectation():
-	TEST = "test1"
-	global CARDS 
-	global POPULATION 
-	global BOARD 
-	global KNIGHTS 
-	global VILLAGERS 
-	global PEOPLE 
-	global metaX
-	global metaY
-	global metaAP
-	global metaDET
-	global metaI
-	global metaJ
-	if TEST == "test1":
-		
-		POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
-		
-		BOARD = (
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
-		)
-		
-		KNIGHTS = {}
-		
-		metaI, metaJ = 4,4
-		metaX, metaY = 8,8
-		VILLAGERS = {(metaI,metaJ), (0,3), (1,3), (2,2), (3,4), (4,5), (4,7),
-			(5,0), (5,1), (5,2), (5,3), (5,4), (5,7), (6,6), (7,1), (7,2),
-			(7,3), (7,4), (7,5), (7,7), (7,8), (8,1),
-			(8,9), (9,8), (9,9)}
-		metaDET = 10
-		metaAP = 28
-		
-		CARDS = (
-			# (AP King, AP Knight, Fetter, AP Population/Assassins)
-			(100, 100, True, metaAP),
-			(100, 100, True, metaAP)
-		)
-		
-		PEOPLE = [[None for column in range(10)] for row in range(10)]
-		
-		for coord in KNIGHTS:
-			PEOPLE[coord[0]][coord[1]] = 'knight'
-			
-		for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
-			PEOPLE[coord[0]][coord[1]] = villager
-			
-	else:
-		CARDS = (
-			# (AP King, AP Knight, Fetter, AP Population/Assassins)
-			(1, 6, True, 5),
-			(1, 5, False, 4),
-			(1, 6, True, 5),
-			(1, 6, True, 5),
-			(1, 5, True, 4),
-			(1, 5, False, 4),
-			(2, 7, False, 5),
-			(2, 7, False, 4),
-			(1, 6, True, 5),
-			(1, 6, True, 5),
-			(2, 7, False, 5),
-			(2, 5, False, 4),
-			(1, 5, True, 5),
-			(1, 5, False, 4),
-			(1, 5, False, 4)
-		)
+POPULATION = {
+	'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
+	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
+}
 
-		POPULATION = {
-			'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
-			'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
-		}
+BOARD = (
+	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
+	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
+	('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
+	('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+	('R', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+	('G', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+	('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+	('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
+	('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+	('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+)
 
-		BOARD = (
-			('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
-			('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
-			('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
-			('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('R', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-			('G', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-			('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-			('R', 'R', 'G', 'G', 'G', 'R', 'R', 'G', 'G', 'G'),
-			('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
-			('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
-		)
+# Coordinates of pawns on the board
+KNIGHTS = {(1, 3), (3, 0), (7, 8), (8, 7), (8, 8), (8, 9), (9, 8)}
 
-		# Coordinates of pawns on the board
-		KNIGHTS = {(1, 3), (3, 0), (7, 8), (8, 7), (8, 8), (8, 9), (9, 8)}
+VILLAGERS = {
+	(1, 7), (2, 1), (3, 4), (3, 6), (5, 2), (5, 5),
+	(5, 7), (5, 9), (7, 1), (7, 5), (8, 3), (9, 5)
+}
 
-		VILLAGERS = {
-			(1, 7), (2, 1), (3, 4), (3, 6), (5, 2), (5, 5),
-			(5, 7), (5, 9), (7, 1), (7, 5), (8, 3), (9, 5)
-		}
+# Separate board containing the position of the pawns
+PEOPLE = [[None for column in range(10)] for row in range(10)]
 
-		# Separate board containing the position of the pawns
-		PEOPLE = [[None for column in range(10)] for row in range(10)]
+# Place the king in the right-bottom corner
+PEOPLE[9][9] = 'king'
 
-		# Place the king in the right-bottom corner
-		PEOPLE[9][9] = 'king'
+# Place the knights on the board
+for coord in KNIGHTS:
+	PEOPLE[coord[0]][coord[1]] = 'knight'
 
-		# Place the knights on the board
-		for coord in KNIGHTS:
-			PEOPLE[coord[0]][coord[1]] = 'knight'
-
-		# Place the villagers on the board
-		# random.sample(A, len(A)) returns a list where the elements are shuffled
-		# this randomizes the position of the villagers
-		for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
-			PEOPLE[coord[0]][coord[1]] = villager
-
-
+# Place the villagers on the board
+# random.sample(A, len(A)) returns a list where the elements are shuffled
+# this randomizes the position of the villagers
+for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+	PEOPLE[coord[0]][coord[1]] = villager
 
 KA_INITIAL_STATE = {
 	'board': BOARD,
@@ -165,7 +93,6 @@ KA_INITIAL_STATE = {
 	}
 }
 
-
 class KingAndAssassinsState(game.GameState):#stateclass
 	'''Class representing a state for the King & Assassins game.'''
 
@@ -175,8 +102,15 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		'S': (1, 0),
 		'N': (-1, 0)
 	}
+	
+	BUFFER_SIZE = 2048
 
-	def __init__(self, initialstate=KA_INITIAL_STATE):#initfun
+	def __init__(self, initialstate=KA_INITIAL_STATE, POPULATION=POPULATION, BOARD=BOARD):#initfun
+		'''
+		needs : self.POPULATION, self.BOARD
+		'''
+		self.POPULATION = POPULATION
+		self.BOARD = BOARD
 		self.APKING = 0
 		self.APKNIGHT = 0
 		self.CUFFS = False
@@ -216,20 +150,20 @@ class KingAndAssassinsState(game.GameState):#stateclass
 				# King, assassins, villagers can only move on a free cell
 				if p != 'knight' and new is not None:
 					raise game.InvalidMoveException('{}: cannot move on a cell that is not free'.format(move))
-				if p == 'king' and BOARD[nx][ny] == 'R':
+				if p == 'king' and self.BOARD[nx][ny] == 'R':
 					raise game.InvalidMoveException('{}: the king cannot move on a roof'.format(move))
-				#if p in {'assassin'} + POPULATION and player != 0:
+				#if p in {'assassin'} + self.POPULATION and player != 0:
 #-###################################################################################################
-				if p in {'assassin'} | POPULATION and player != 0:
+				if p in {'assassin'} | self.POPULATION and player != 0:
 					raise game.InvalidMoveException('{}: villagers and assassins can only be moved by player 0'.format(move))
 				if p in {'king', 'knight'} and player != 1:
 					raise game.InvalidMoveException('{}: the king and knights can only be moved by player 1'.format(move))
 				# Move granted if cell is free
 				if new is None:
 					cost = 0
-					if BOARD[x][y] == BOARD[nx][ny]:
+					if self.BOARD[x][y] == self.BOARD[nx][ny]:
 						cost = 1
-					elif BOARD[x][y] == 'G':
+					elif self.BOARD[x][y] == 'G':
 						cost = 1 if p == 'assassin' else 2
 					else:
 						cost = 0 if p == 'assassin' else 1
@@ -237,7 +171,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 						self.APKING-=cost
 					elif p == 'knight' and self.APKNIGHT >= cost:
 						self.APKNIGHT-=cost
-					elif p in {'assassin'} | POPULATION and self.APCOM >= cost:
+					elif p in {'assassin'} | self.POPULATION and self.APCOM >= cost:
 						self.APCOM-=cost
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
@@ -248,17 +182,17 @@ class KingAndAssassinsState(game.GameState):#stateclass
 					news = [(x,y)]
 					pushable = False
 					knightIsUp = False
-					if BOARD[x][y] == 'R' or BOARD[nx][ny] == 'R':
+					if self.BOARD[x][y] == 'R' or self.BOARD[nx][ny] == 'R':
 						knightIsUp = True
-					while (BOARD[nx][ny] == 'G' or knightIsUp) and new is not None and new != 'knight' and new != 'king':
+					while (self.BOARD[nx][ny] == 'G' or knightIsUp) and new is not None and new != 'knight' and new != 'king':
 						news.append((nx,ny))
-						if BOARD[nx][ny] == 'G':
+						if self.BOARD[nx][ny] == 'G':
 							knightIsUp = False
 						nx, ny = self._getcoord((nx, ny, d))
 						if nx<0 or ny<0 or nx>9 or ny>9:
 							break
 						new = people[nx][ny]
-						if new is None and (BOARD[nx][ny] == 'G' or knightIsUp):
+						if new is None and (self.BOARD[nx][ny] == 'G' or knightIsUp):
 							pushable = True
 					if pushable:
 						if self.APKNIGHT >= 1:
@@ -286,9 +220,9 @@ class KingAndAssassinsState(game.GameState):#stateclass
 					raise game.InvalidMoveException('{}: the attacker is not a knight'.format(move))
 				tx, ty = self._getcoord((x, y, d))
 				target = people[tx][ty]
-				if target not in POPULATION:
+				if target not in self.POPULATION:
 					raise game.InvalidMoveException('{}: only villagers can be arrested'.format(move))
-				if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
+				if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 					raise game.InvalidMoveException('{}: arrest action impossible from below'.format(move))
 				if self.APKNIGHT >= 1:
 					self.APKNIGHT-=1
@@ -310,7 +244,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 				target = people[tx][ty]
 				if target is None:
 					raise game.InvalidMoveException('{}: there is no one to kill'.format(move))
-				if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
+				if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 					raise game.InvalidMoveException('{}: kill action impossible from below'.format(move))
 				if killer == 'assassin' and target == 'knight':
 					cost = 1 + self.SECONDKILL
@@ -422,11 +356,16 @@ class KingAndAssassinsState(game.GameState):#stateclass
 class KingAndAssassinsServer(game.GameServer):#serverclass
 	'''Class representing a server for the King & Assassins game'''
 
-	def __init__(self, verbose=False):#initfun
-		super().__init__('King & Assassins', 2, KingAndAssassinsState(), verbose=verbose)
+	def __init__(self, verbose=False, CARDS = CARDS, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):#initfun
+		'''
+		needs : self.CARDS, self.POPULATION
+		'''
+		self.POPULATION = POPULATION
+		self.CARDS = CARDS
+		super().__init__('King & Assassins', 2, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 		self._state._state['hidden'] = {
 			'assassins': None,
-			'cards': random.sample(CARDS, len(CARDS))
+			'cards': random.sample(self.CARDS, len(self.CARDS))
 		}
 
 	def _setassassins(self, move):#setassassinsfun
@@ -438,7 +377,7 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 		for assassin in move['assassins']:
 			if not isinstance(assassin, str):
 				raise game.InvalidMoveException('The "assassins" must be identified by their name')
-			if not assassin in POPULATION:
+			if not assassin in self.POPULATION:
 				raise game.InvalidMoveException('Unknown villager: {}'.format(assassin))
 		state.setassassins(move['assassins'])
 		state.update([], 0)
@@ -462,7 +401,12 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 class KingAndAssassinsClient(game.GameClient):#clientclass
 	'''Class representing a client for the King & Assassins game'''
 
-	def __init__(self, name, server, verbose=False):
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
+		'''
+		needs : self.BOARD, self.POPULATION
+		'''
+		self.BOARD = BOARD
+		self.POPULATION = POPULATION
 		self.__name = name
 		self.assassins = []
 		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
@@ -476,7 +420,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		self.TESTSECONDKILL = 0
 		self.ABORTKILL = False
 		self.turns = 0
-		super().__init__(server, KingAndAssassinsState, verbose=verbose)
+		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 
 	def _handle(self, message):#handlefun
 		pass
@@ -543,18 +487,18 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			# King, assassins, villagers can only move on a free cell
 			if p != 'knight' and new is not None:
 				return returnValue #cannot move on a cell that is not free
-			if p == 'king' and BOARD[nx][ny] == 'R':
+			if p == 'king' and self.BOARD[nx][ny] == 'R':
 				return returnValue #the king cannot move on a roof
-			if p in {'assassin'} | POPULATION and player != 0:
+			if p in {'assassin'} | self.POPULATION and player != 0:
 				return returnValue #villagers and assassins can only be moved by player 0
 			if p in {'king', 'knight'} and player != 1:
 				return returnValue #the king and knights can only be moved by player 1
 			# Move granted if cell is free
 			if new is None:
 				cost = 0
-				if BOARD[x][y] == BOARD[nx][ny]:
+				if self.BOARD[x][y] == self.BOARD[nx][ny]:
 					cost = 1
-				elif BOARD[x][y] == 'G':
+				elif self.BOARD[x][y] == 'G':
 					cost = 1 if p == 'assassin' else 2
 				else:
 					cost = 0 if p == 'assassin' else 1
@@ -566,17 +510,17 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				news = [(x,y)]
 				pushable = False
 				knightIsUp = False
-				if BOARD[x][y] == 'R' or BOARD[nx][ny] == 'R':
+				if self.BOARD[x][y] == 'R' or self.BOARD[nx][ny] == 'R':
 					knightIsUp = True
-				while (BOARD[nx][ny] == 'G' or knightIsUp) and new is not None and new != 'knight' and new != 'king':
+				while (self.BOARD[nx][ny] == 'G' or knightIsUp) and new is not None and new != 'knight' and new != 'king':
 					news.append((nx,ny))
-					if BOARD[nx][ny] == 'G':
+					if self.BOARD[nx][ny] == 'G':
 						knightIsUp = False
 					nx, ny = self._getcoord((nx, ny, d))
 					if nx<0 or ny<0 or nx>9 or ny>9:
 						break
 					new = peopleState[nx][ny]
-					if new is None and (BOARD[nx][ny] == 'G' or knightIsUp):
+					if new is None and (self.BOARD[nx][ny] == 'G' or knightIsUp):
 						pushable = True
 				if pushable:
 					returnValue['cost']=1
@@ -596,9 +540,9 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				return returnValue #the attacker is not a knight
 			tx, ty = self._getcoord((x, y, d))
 			target = peopleState[tx][ty]
-			if target not in POPULATION:
+			if target not in self.POPULATION:
 				return returnValue #only villagers can be arrested
-			if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
+			if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 				return returnValue #arrest action impossible from below
 			returnValue['cost']=1
 			returnValue['legal']=True
@@ -616,7 +560,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			target = peopleState[tx][ty]
 			if target is None:
 				return returnValue #there is no one to kill
-			if BOARD[tx][ty] == 'R' and BOARD[x][y] == 'G':
+			if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 				return returnValue #kill action impossible from below
 			if killer == 'assassin' and target == 'knight':
 				cost = 1 + self.TESTSECONDKILL
@@ -963,55 +907,33 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':newcoord}
 	
-	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#minimizeobjectivefun
+	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, assassinPattern = True):#minimizeobjectivefun
 		'''
 		this function try to accomplish objective with a minimal amount of AP within APAvailable
-		it is made to work with the worst case scenario : a revealed assassin on a checkboard with 'G' to 'R' squares
+		it is made to work with the worst case scenario by default : a revealed assassin on a checkboard with 'G' to 'R' squares
 		it is by no mean time-optimized : it works pretty badly with APAvailable > 7
+		i.e. : more than 2 minutes required to successfully solve test1 (28 AP, 10 detours)
+		but in this game, moves are limited by 7 AP 2 detours or less (3 detours for an assassin on a checkboard)
 		'''
-		for AP in range(APAvailable):
-			nDetour = AP-1 if AP>1 else 0
+		distance = abs(fPos[0]-iPos[0]) + abs(fPos[1]-iPos[1])
+		if assassinPattern :
+			distance = distance//2
+		print("Searching for a valid path (please be patient)...")
+		tic = time.time()
+		for AP in range(distance, APAvailable+1):
+			if assassinPattern:
+				nDetour = AP-1 if AP>1 else 0
+			else:
+				nDetour = (AP-2)//2 if AP>1 else 0
 			for detour in range(nDetour+1):
 				stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour)
-				print(str(AP)+' '+str(detour))
 				if stateObjective['completed']:
+					print("... Succeeded ("+str(time.time()-tic)+" seconds)")
 					return stateObjective
+		print("... Failed ("+str(time.time()-tic)+" seconds)")
 		return stateObjective
 	
-	def _nextmove(self, state):#nextmovefun
-		global metaX
-		global metaY
-		global metaAP
-		global metaDET
-		global metaI
-		global metaJ
-		try:
-			state = state._state['visible']
-			peopleState = state['people']
-			peopleStateCopy = copy.deepcopy(peopleState)
-			kingState = state['king']
-			self.turns+=1
-			if state['card'] is None:
-				self.turns-=1
-				return json.dumps({'assassins': [peopleState[8][9], peopleState[9][8], peopleState[9][9]]}, separators=(',', ':'))
-			else:
-				APking = state['card'][0]
-				APcom = state['card'][1]
-				self.CUFFS = state['card'][2]
-				APknight = state['card'][3]
-				if self._playernb == 0:
-					finalCommandsList = []
-					stateObjective = self._stateObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', metaAP, metaDET)
-					finalCommandsList += stateObjective['movesList']
-					print(stateObjective['APLeft'])
-					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
-				else:
-					return json.dumps({'actions': []}, separators=(',', ':'))
-		except Exception as e:
-			traceback.print_exc(file=sys.stdout)
-			a = input("Enter")
-	
-	def _nextmoveDrunkHeart(self, state):#nextmovedrunkheartfun
+	def _nextmove(self, state):#nextmovedrunkheartfun
 		'''
 		 Two possible situations:
 		 - If the player is the first to play, it has to select his/her assassins
@@ -1212,7 +1134,10 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 	'''Class representing a client for the King & Assassins game'''
 
-	def __init__(self, name, server, verbose=False):#initfun
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):#initfun
+		'''
+		needs self.POPULATION
+		'''
 		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
 		self.DIRECTIONS = {
 			'E': (0, 1),
@@ -1222,7 +1147,7 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 		}
 		self.POPULATION = POPULATION
 		self.__name = name
-		super().__init__(server, KingAndAssassinsState, verbose=verbose)
+		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 
 	def _handle(self, message):#handlefun
 		pass
@@ -1324,7 +1249,6 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 				
 if __name__ == '__main__':#main
 	# Create the top-level parser
-	tic = time.time()
 	parser = argparse.ArgumentParser(description='King & Assassins game')
 	subparsers = parser.add_subparsers(
 		description='server client',
@@ -1355,13 +1279,23 @@ if __name__ == '__main__':#main
 	# Parse the arguments of sys.args
 	args = parser.parse_args()
 
-	GlobalVariableAffectation()
 	if args.component == 'server':
-		KingAndAssassinsServer(verbose=args.verbose).run()
-		print(time.time()-tic)
+		try:
+			KingAndAssassinsServer(verbose=args.verbose).run()
+		except:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")
 	elif args.component == 'client':
-		KingAndAssassinsClient(args.name, (args.host, args.port), verbose=args.verbose)
+		try:
+			KingAndAssassinsClient(args.name, (args.host, args.port), verbose=args.verbose)
+		except:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")
 	elif args.component == 'humanClient':
-		KingAndAssassinsHumanClient(args.name, (args.host, args.port), verbose=args.verbose)
+		try:
+			KingAndAssassinsHumanClient(args.name, (args.host, args.port), verbose=args.verbose)
+		except:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")
 	a = input("Enter")
 #bottom
