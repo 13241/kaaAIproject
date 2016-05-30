@@ -13,7 +13,7 @@ from lib import game
 from kingandassassins import KingAndAssassinsState, KingAndAssassinsServer, KingAndAssassinsClient
 
 
-ACTUALTESTNUMBER = 1
+ACTUALTESTNUMBER = 2
 
 
 CARDS = None 
@@ -55,7 +55,6 @@ class GlobalVariableAffectation():
 		global metaJ
 		
 		if self.test == "test1":
-			
 			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
 			BOARD = (
@@ -109,8 +108,112 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
+		elif self.test == "test2":
+			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
+			
+			BOARD = (
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'R', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'R'),
+				('G', 'G', 'G', 'G', 'G', 'R', 'R', 'G', 'R', 'G')
+			)
+			
+			metaI, metaJ = 4,4
+			metaX, metaY = 8,8
+			KNIGHTS = {(metaI, metaJ)}
+			VILLAGERS = {(5,4), (6,8), (6,9), (7,6), (7,7), (7,8), 
+				(8,5), (8,7), (9,4)}
+			metaDET = 10
+			metaAP = 100
+			
+			CARDS = (
+				# (AP King, AP Knight, Fetter, AP Population/Assassins)
+				(100, 100, True, metaAP),
+				(100, 100, True, metaAP)
+			)
+			
+			PEOPLE = [[None for column in range(10)] for row in range(10)]
+			
+			for coord in KNIGHTS:
+				PEOPLE[coord[0]][coord[1]] = 'knight'
+				
+			for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+				PEOPLE[coord[0]][coord[1]] = villager
+				
+			KA_INITIAL_STATE = {
+				'board': BOARD,
+				'people': PEOPLE,
+				'castle': [(2, 2, 'N'), (4, 1, 'W')],
+				'card': None,
+				'king': 'healthy',
+				'lastopponentmove': [],
+				'arrested': [],
+				'killed': {
+					'knights': 0,
+					'assassins': 0
+				}
+			}
 
+class KingAndAssassinstest2Client(KingAndAssassinsClient):
+	'''
+	test2 : Ce test évalue la capacité du pathfinding à se sortir d'une situation ou le chevalier
+	doit pousser certains villageois mais pas tous pour atteindre sa destination
+	
+	Ce test échoue pour l'instant (modifier _stateObjective ou faire une autre fonction pour les chevaliers)
+	'''
+	
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
+		super().__init__(name, server, verbose=verbose, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE)
+			
+	def _nextmove(self, state):#nextmovefun
+		global metaX
+		global metaY
+		global metaAP
+		global metaDET
+		global metaI
+		global metaJ
+		try:
+			state = state._state['visible']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
+			self.turns+=1
+			if state['card'] is None:
+				self.turns-=1
+				return json.dumps({'assassins': [peopleState[6][8], peopleState[6][9], peopleState[7][8]]}, separators=(',', ':'))
+			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
+				if self._playernb == 1:
+					finalCommandsList = []
+					stateObjective = self._stateObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', 13, 2)
+					finalCommandsList += stateObjective['movesList']
+					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
+				else:
+					return json.dumps({'actions': []}, separators=(',', ':'))
+		except Exception as e:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")
+			
 class KingAndAssassinstest1Client(KingAndAssassinsClient):
+	'''
+	test1 : Ce teste évalue la performance des fonctions de pathfinding pour des pions de type 
+	villageois sur un terrain sans toit encombré par d'autres villageois.
+	Le terrain est un labyrinthe qui se résout en 28 déplacements dont 10 détours (autrement dit :
+	20 déplacements servent à contourner des obstacles, et la distance avec l'objectif est de 8)
+	
+	Ce test réussit en 120-130 secondes. (=> améliorer _minimizeObjective pour réduire ce temps)
+	On ne devra jamais calculer de déplacement aussi complexe dans une partie réelle, 
+	réduire la durée de ce test n'est donc pas une priorité.
+	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
 		super().__init__(name, server, verbose=verbose, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE)

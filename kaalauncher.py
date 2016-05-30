@@ -14,7 +14,7 @@ try:
 		"Type : \r\n", 
 		"2players = humanPlayer vs humanPlayer \r\n",
 		"2ias or nothing = IA vs IA \r\n",
-		"test1 = run Test1 \r\n"]))
+		"testx = run Testx where x is a number \r\n"]))
 	#response = "IA"
 	server = "server"
 	client = "client"

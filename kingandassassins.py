@@ -706,10 +706,9 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''
 		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
 		'''
-		#etat actuel : PathFinding pour le ROI et les VILLAGEOIS (non assassins)
-		#utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
-		#=> doit encore énormément évoluer
-		#=> sera certainement dédoublée plusieurs fois pour correspondre à une stratégie de pathfinding propre à chaque pion
+		#etat actuel : PathFinding pour le ROI, les VILLAGEOIS et les ASSASSINS (non chevalier)
+		#manoeuvre d'évitement possible
+		#=> ne gère pas le push des chevaliers
 		#=> WARNING : cette fonction est récursive
 		if iPos == fPos and objective == 'm':
 			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState,
@@ -755,12 +754,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				dirPrevious = self._getopposite(validCommands[-2:].strip(' ')) if validCommands != '' else dirPrevious
 			else:
 				firstReturn = False
-			'''debug purposes
+			#'''debug purposes
 			print("fcoord = "+str(fatalCoord))
 			print("fcmd   = "+str(fatalCommand))
 			print("ndtour = "+str(nDetour))
 			print("dprev  = "+str(dirPrevious))
-			'''
+			#'''
 			if nDetour>0:
 				if fatalCommand[1]==xdir:
 					tryOppositeDirection = False
@@ -910,23 +909,32 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, assassinPattern = True):#minimizeobjectivefun
 		'''
 		this function try to accomplish objective with a minimal amount of AP within APAvailable
-		it is made to work with the worst case scenario by default : a revealed assassin on a checkboard with 'G' to 'R' squares
-		it is by no mean time-optimized : it works pretty badly with APAvailable > 7
-		i.e. : more than 2 minutes required to successfully solve test1 (28 AP, 10 detours)
-		but in this game, moves are limited by 7 AP 2 detours or less (3 detours for an assassin on a checkboard)
+		Revamped, it is now 0-8 times faster (15 seconds for test1, (128 seconds before))
 		'''
+		#WARNING : vérifier que la nouvelle version traite bien tous les cas intéressants (possible perte de certains cas)
 		distance = abs(fPos[0]-iPos[0]) + abs(fPos[1]-iPos[1])
 		if assassinPattern :
-			distance = distance//2
+			minCostDist = distance//2
+			maxCostDist = distance
+		else:
+			minCostDist = distance
+			maxCostDist = (distance//2)*3+(distance%2)*3
 		print("Searching for a valid path (please be patient)...")
 		tic = time.time()
-		for AP in range(distance, APAvailable+1):
+		for AP in range(minCostDist, APAvailable+1):
 			if assassinPattern:
-				nDetour = AP-1 if AP>1 else 0
+				minDet = (AP-maxCostDist)//2
+				maxDet = AP-minCostDist
 			else:
-				nDetour = (AP-2)//2 if AP>1 else 0
-			for detour in range(nDetour+1):
+				minDet = (AP-maxCostDist)//3 if (AP-maxCostDist)%3 ==0 else (AP-maxCostDist)//3+1
+				maxDet = (AP-minCostDist)//2
+			if minDet <0:
+				minDet = 0
+			if maxDet <0:
+				maxDet = 0
+			for detour in range(minDet, maxDet+1):
 				stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour)
+				print(str(AP)+" "+str(detour))#debug purpose
 				if stateObjective['completed']:
 					print("... Succeeded ("+str(time.time()-tic)+" seconds)")
 					return stateObjective
