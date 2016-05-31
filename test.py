@@ -163,9 +163,10 @@ class GlobalVariableAffectation():
 class KingAndAssassinstest2Client(KingAndAssassinsClient):
 	'''
 	test2 : Ce test évalue la capacité du pathfinding à se sortir d'une situation ou le chevalier
-	doit pousser certains villageois mais pas tous pour atteindre sa destination
+	doit pousser certains villageois mais pas tous pour atteindre sa destination (14 AP, 2 détours)
+	Ce test comporte des passages sur toit.
 	
-	Ce test échoue pour l'instant (modifier _stateObjective ou faire une autre fonction pour les chevaliers)
+	Ce test réussit en 0.2 secondes
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -194,8 +195,9 @@ class KingAndAssassinstest2Client(KingAndAssassinsClient):
 				APknight = state['card'][3]
 				if self._playernb == 1:
 					finalCommandsList = []
-					stateObjective = self._stateObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', 13, 2)
-					finalCommandsList += stateObjective['movesList']
+					stateObjective = self._minimizeObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', metaAP, False)
+					if stateObjective['completed']:
+						finalCommandsList += stateObjective['movesList']
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 				else:
 					return json.dumps({'actions': []}, separators=(',', ':'))
@@ -210,9 +212,7 @@ class KingAndAssassinstest1Client(KingAndAssassinsClient):
 	Le terrain est un labyrinthe qui se résout en 28 déplacements dont 10 détours (autrement dit :
 	20 déplacements servent à contourner des obstacles, et la distance avec l'objectif est de 8)
 	
-	Ce test réussit en 120-130 secondes. (=> améliorer _minimizeObjective pour réduire ce temps)
-	On ne devra jamais calculer de déplacement aussi complexe dans une partie réelle, 
-	réduire la durée de ce test n'est donc pas une priorité.
+	Ce test réussit en 17 secondes. 
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -242,7 +242,8 @@ class KingAndAssassinstest1Client(KingAndAssassinsClient):
 				if self._playernb == 0:
 					finalCommandsList = []
 					stateObjective = self._minimizeObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 'm', metaAP, False)
-					finalCommandsList += stateObjective['movesList']
+					if stateObjective['completed']:
+						finalCommandsList += stateObjective['movesList']
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 				else:
 					return json.dumps({'actions': []}, separators=(',', ':'))

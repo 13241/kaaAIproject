@@ -467,7 +467,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		WARNING : a valid moveList can raise an error in the _update method if there is not enough
 		AP left for this moveList
 		'''
-		returnValue = {'cost':0,'legal':False}
+		returnValue = {'cost':0,'legal':False,'push':False}
 		player = self._playernb
 		if moveList[0] == 'move':#validmovemove
 			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
@@ -525,6 +525,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				if pushable:
 					returnValue['cost']=1
 					returnValue['legal']=True
+					returnValue['push']=True
 					return returnValue
 				else:
 					return returnValue #The knight can not push this way
@@ -689,16 +690,20 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		validCommands = ''
 		movesList = self._prettyCommands(movesString)
 		peopleStateCopy = copy.deepcopy(peopleState)
+		history = {'from':[],'pushes':[],'APLeft':[]}
 		for i in range(len(movesList)):
 			validMove = self._validMove(peopleStateCopy, movesList[i])
 			if validMove['legal'] and APLeft-validMove['cost']>=0:
 				APLeft-=validMove['cost']
+				history['APLeft'].append(APLeft)
+				history['pushes'].append(validMove['push'])
+				history['from'].append((movesList[i][1], movesList[i][2]))
 				updateCopy= self._updateCopy(peopleStateCopy, kingState, movesList[i])
 				peopleStateCopy, kingState = updateCopy['peopleState'], updateCopy['kingState']
 				validCommands=commands[0:3*i+3]
 			else:
 				fPos = (movesList[i][1], movesList[i][2])
-				return {'legal':False, 'validCommands':validCommands, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3],
+				return {'legal':False, 'validCommands':validCommands, 'history':history, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3],
 					'lastValidPosition':fPos}
 		return {'legal':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleStateCopy':peopleStateCopy, 'kingState':kingState}
 	
@@ -706,9 +711,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''
 		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
 		'''
-		#etat actuel : PathFinding pour le ROI, les VILLAGEOIS et les ASSASSINS (non chevalier)
+		#etat actuel : PathFinding pour tous les pions, opérationnel. :) YAY (:
+		#nécessite une analyse et une révision complète : la structure du code est dégueulasse, et de plus la fonction
+		#teste énormément de mouvements "tentaculaires" inutiles (conditions supplémentaires à rajouter). La complexité du code
+		#nécessite une explication détaillée pour la relecture
 		#manoeuvre d'évitement possible
-		#=> ne gère pas le push des chevaliers
+		#gère le push des chevaliers
 		#=> WARNING : cette fonction est récursive
 		if iPos == fPos and objective == 'm':
 			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState,
@@ -726,16 +734,17 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			(abs(x)-kx)*''.join(['m',xdir,' ']),
 			''.join([objective,metadir,' '])])
 		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
-		firstReturn = False
+		regress = False
 		if stated[1] == dirPrevious:
 			ended = False
 			validCommands = ''
+			pushes = []
 			ydone = 0
 			xdone = 0
 			APLeft = APAvailable
 			fatalCommand = stated[:3]
-			fatalCoord = iPos
-			firstReturn = True
+			fatalCoord = (str(iPos[0]),str(iPos[1]))
+			regress = True
 		else:
 			validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
 			ended = validObjective['legal']
@@ -743,8 +752,10 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		detourEnded = False
 		longestValidCommands = ''
 		while not ended:
-			if not firstReturn :
+			if not regress :
 				validCommands = validObjective['validCommands']
+				history = validObjective['history']
+				pushes = history['pushes']
 				longestValidCommands =validCommands if len(validCommands)>len(longestValidCommands) else longestValidCommands
 				ydone = validCommands.count(''.join(['m',ydir]))
 				xdone = validCommands.count(''.join(['m',xdir]))
@@ -753,13 +764,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				fatalCoord = validObjective['lastValidPosition']
 				dirPrevious = self._getopposite(validCommands[-2:].strip(' ')) if validCommands != '' else dirPrevious
 			else:
-				firstReturn = False
-			#'''debug purposes
+				regress = False
+			'''debug purposes
 			print("fcoord = "+str(fatalCoord))
 			print("fcmd   = "+str(fatalCommand))
 			print("ndtour = "+str(nDetour))
 			print("dprev  = "+str(dirPrevious))
-			#'''
+			'''
 			if nDetour>0:
 				if fatalCommand[1]==xdir:
 					tryOppositeDirection = False
@@ -873,6 +884,18 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 						(abs(y)-ydone)*''.join(['m',ydir,' ']),
 						(abs(x)-xdone-1)*''.join(['m',xdir,' ']),
 						''.join([objective,xdir,' '])])
+			elif True in pushes:
+				regress = True
+				lastTruePushIndex = len(pushes)-1-pushes[::-1].index(True) #index du dernier element de pushes (so stupid... => rindex())
+				fatalCommand = validCommands[3*lastTruePushIndex:3*lastTruePushIndex+3]
+				validCommands = validCommands[0:3*lastTruePushIndex]
+				pushes = pushes[0:lastTruePushIndex]
+				ydone = validCommands.count(''.join(['m',ydir]))
+				xdone = validCommands.count(''.join(['m',xdir]))
+				APLeft = history['APLeft'][lastTruePushIndex]
+				fatalCoord = history['from'][lastTruePushIndex]
+				dirPrevious = self._getopposite(validCommands[-2:].strip(' ')) if validCommands != '' else dirPrevious
+				continue
 			else:
 				forceEnded = True
 				break
@@ -934,11 +957,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				maxDet = 0
 			for detour in range(minDet, maxDet+1):
 				stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour)
-				print(str(AP)+" "+str(detour))#debug purpose
+				sys.stdout.write(chr(13))
+				sys.stdout.write("AP : "+str(AP)+" detours : "+str(detour))
+				sys.stdout.flush()
 				if stateObjective['completed']:
-					print("... Succeeded ("+str(time.time()-tic)+" seconds)")
+					print("\r\n... Succeeded ("+str(time.time()-tic)+" seconds)")
 					return stateObjective
-		print("... Failed ("+str(time.time()-tic)+" seconds)")
+		print("\r\n... Failed ("+str(time.time()-tic)+" seconds)")
 		return stateObjective
 	
 	def _nextmove(self, state):#nextmovedrunkheartfun

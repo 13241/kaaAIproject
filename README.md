@@ -70,7 +70,7 @@ les villageois et les chevaliers se mettent en formation "coeur", c'est la
 fête. Le roi, ivre, décide de rentrer au chateau en zigzaguant dans la foule.
 Les assassins font la grêve.
 
-# UPDATE 29/05/2016
+# UPDATE 31/05/2016
 
 CERTAINES INFORMATIONS MENTIONEES CI-DESSUS PEUVENT ETRE OBSOLETES
 
@@ -80,9 +80,16 @@ importe le nombre.
 Le PATHFINDING cherche désormais le moyen le plus court d'atteindre une 
 destination grace à la méthode _minimizeObjective
 
-GROS aménagement du code principal pour effectuer des tests de pathfinding, 
+Le PATHFINDING gère désormais les pushes des chevaliers. Tous les cas sont
+donc gérés, autrement dit : si une possibilité d'action pour un pion existe, 
+le PATHFINDING la trouvera.
+
+Ce qu'il manque : la gestion coordonnée de tous les pions du joueur (et pas seulement
+qu'un seul)
+
+GROS aménagement du code principal pour effectuer des tests, 
 utiliser le launcher sous windows pour lancer les tests
 
-Un schéma de test1 se trouve dans réflexion IA.xlsx
+à restructurer : réflexion IA.xlsx ainsi que la fonction _stateObjective
 
-Les commentaires ne sont plus à jour.
+Les commentaires des fonctions ne sont plus tous à jour.
