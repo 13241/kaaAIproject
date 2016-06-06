@@ -1,5 +1,22 @@
 *>current
 
+à faire : 
+problème des string/entiers dans les coordonnées... relire tout pour la cohérence. => done? à vérifier
+
+règle : le joueur assassin ne peut tuer que 2 chevaliers par tour à ajouter dans les règles => done
+règle : 3 assassins max => done
+test assassinat dans _stateObjective + gérer assassinat dans minimizeObjective => done
+déplacement assassinat dans _stateObjective => done
+
+fonction pour push à partir d'une certaine case (sur plusieurs cases) hors state objective
+coder la fonction radar
+imaginer comment gérer plusieurs pions à la fois
+recommenter toutes les fonctions
+_stateObjective déceler les recherches inutiles
+recoder/restructurer _stateObjective si nécessaire
+
+
+
 liste de priorités, liste par priorité ? combien de niveaux de priorité?
 
 

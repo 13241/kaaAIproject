@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # kingandassassins.py
 # Author: Sébastien Combéfis, Damien Abeloos
-# Version: May 28, 2016
+# Version: June 6, 2016
 
 #top
 import argparse
@@ -116,6 +116,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		self.CUFFS = False
 		self.APCOM = 0
 		self.SECONDKILL = 0
+		self.KILLCOUNT = 0
 		super().__init__(initialstate)
 
 	def _nextfree(self, x, y, dir):#nextfreefun
@@ -247,8 +248,11 @@ class KingAndAssassinsState(game.GameState):#stateclass
 				if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 					raise game.InvalidMoveException('{}: kill action impossible from below'.format(move))
 				if killer == 'assassin' and target == 'knight':
+					if self.KILLCOUNT >= 2:
+						raise game.InvalidMoveException('{}: you can only kill 2 knights per turn'.format(move))
 					cost = 1 + self.SECONDKILL
 					self.SECONDKILL = 1
+					self.KILLCOUNT+=1
 					if self.APCOM >= cost:
 						self.APCOM-=cost
 					else:
@@ -303,6 +307,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 			self.CUFFS = visible['card'][2]
 			self.APCOM = visible['card'][3]
 			self.SECONDKILL = 0
+			self.KILLCOUNT = 0
 	def _getcoord(self, coord):#getcoordfun
 		return tuple(coord[i] + KingAndAssassinsState.DIRECTIONS[coord[2]][i] for i in range(2))
 
@@ -374,6 +379,8 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 			raise game.InvalidMoveException('The dictionary must contain an "assassins" key')
 		if not isinstance(move['assassins'], list):
 			raise game.InvalidMoveException('The value of the "assassins" key must be a list')
+		if len(move['assassins'])!=3:
+			raise game.InvalidMoveException('There must be exactly 3 assassins')
 		for assassin in move['assassins']:
 			if not isinstance(assassin, str):
 				raise game.InvalidMoveException('The "assassins" must be identified by their name')
@@ -418,7 +425,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		}
 		self.CUFFS = False
 		self.TESTSECONDKILL = 0
-		self.ABORTKILL = False
+		self.KILLCOUNTER = 0
 		self.turns = 0
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 
@@ -564,6 +571,8 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			if self.BOARD[tx][ty] == 'R' and self.BOARD[x][y] == 'G':
 				return returnValue #kill action impossible from below
 			if killer == 'assassin' and target == 'knight':
+				if self.KILLCOUNTER >= 2:
+					return returnValue #2 knight kills max per turn for assassin player
 				cost = 1 + self.TESTSECONDKILL
 				returnValue['cost']=cost
 				returnValue['legal']=True
@@ -640,6 +649,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			tx, ty = self._getcoord((x, y, d))
 			if killer == 'assassin':
 				self.TESTSECONDKILL = 1
+				self.KILLCOUNTER+=1
 			peopleState[tx][ty] = None
 		# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
 		elif moveList[0] == 'attack':#updatecopyattack
@@ -660,8 +670,8 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		movesStringList = movesString.split(' + ')
 		for i in range(len(movesStringList)):
 			movesStringList[i] = movesStringList[i].split(' ')#regex ' + ' ou '+'
-			x = movesStringList[i][0]
-			y = movesStringList[i][1]
+			x = int(movesStringList[i][0])
+			y = int(movesStringList[i][1])
 			commandsList = movesStringList[i][2:len(movesStringList[i])]
 			for j in range(len(commandsList)):
 				copyH = copy.copy(commandsList[j])
@@ -673,7 +683,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					if copyH[0] != 'r' and len(copyH)==2:
 						commandsList[j].append(copyH[1])
 						if copyH[0] == 'm':
-							x, y = str(int(x)+self.DIRECTIONS[copyH[1]][0]), str(int(y)+self.DIRECTIONS[copyH[1]][1])
+							x, y = x+self.DIRECTIONS[copyH[1]][0], y+self.DIRECTIONS[copyH[1]][1]
 			movesList+=copy.copy(commandsList)
 		return movesList
 	
@@ -702,12 +712,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				peopleStateCopy, kingState = updateCopy['peopleState'], updateCopy['kingState']
 				validCommands=commands[0:3*i+3]
 			else:
-				fPos = (movesList[i][1], movesList[i][2])
+				fPos = (int(movesList[i][1]), int(movesList[i][2]))
 				return {'legal':False, 'validCommands':validCommands, 'history':history, 'APLeft':APLeft, 'fatalMoveString':commands[3*i:3*i+3],
 					'lastValidPosition':fPos}
 		return {'legal':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleStateCopy':peopleStateCopy, 'kingState':kingState}
 	
-	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, nDetour = 0, dirPrevious = ''):#stateobjectivefun
+	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, nDetour = 0, dirPrevious = '', nKill = 0):#stateobjectivefun
 		'''
 		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
 		'''
@@ -743,13 +753,14 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			xdone = 0
 			APLeft = APAvailable
 			fatalCommand = stated[:3]
-			fatalCoord = (str(iPos[0]),str(iPos[1]))
+			fatalCoord = (iPos[0],iPos[1])
 			regress = True
 		else:
 			validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
 			ended = validObjective['legal']
 		forceEnded = False
 		detourEnded = False
+		killEnded = False
 		longestValidCommands = ''
 		while not ended:
 			if not regress :
@@ -768,86 +779,78 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			'''debug purposes
 			print("fcoord = "+str(fatalCoord))
 			print("fcmd   = "+str(fatalCommand))
+			print("nkill  = "+str(nKill))
 			print("ndtour = "+str(nDetour))
 			print("dprev  = "+str(dirPrevious))
 			'''
+			if nKill>0:
+				if fatalCommand != dirPrevious:
+					kill = ''.join([
+						''.join(['k',fatalCommand[1],' ']),
+						''.join(['m',fatalCommand[1],' '])])
+					killObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands, kill]), APAvailable)
+					if killObjective['legal']:
+						newIPos = self._getcoord((killObjective['movesList'][-1][1],
+							killObjective['movesList'][-1][2], killObjective['movesList'][-1][3]))
+						sentDirPrevious = self._getopposite(fatalCommand[1])
+						statedKillObjective = self._stateObjective(killObjective['peopleStateCopy'], killObjective['kingState'], newIPos,
+							fPos, objective, killObjective['APLeft'], nDetour, sentDirPrevious, nKill-1)
+						if statedKillObjective['completed']:
+							killEnded = True
+							break
+						elif peopleState[iPos[0]][iPos[1]]=="assassin":
+							self.KILLCOUNTER-=1
+							if self.KILLCOUNTER == 0:
+								self.TESTSECONDKILL=0
 			if nDetour>0:
-				if fatalCommand[1]==xdir:
+				if fatalCommand[1]==xdir or fatalCommand[1]==ydir:
+					wrongDir = fatalCommand[1]
+					newDir = ydir if wrongDir == xdir else xdir
+					dirRemaining = (abs(y)-ydone) if wrongDir == xdir else (abs(x)-xdone)
+					opNewDir = self._getopposite(newDir)
 					tryOppositeDirection = False
-					if abs(y)-ydone == 0:
-						if ydir != dirPrevious:
-							detour = ''.join(['m',ydir,' '])
+					if dirRemaining == 0:
+						if newDir != dirPrevious:
+							detour = ''.join(['m',newDir,' '])
 							detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
 							tryOppositeDirection = not detourObjective['legal']
 							if detourObjective['legal']:
-								newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), 
-									int(detourObjective['movesList'][-1][2]), detourObjective['movesList'][-1][3]))
-								dirPrevious = self._getopposite(ydir)
+								newIPos = self._getcoord((detourObjective['movesList'][-1][1], 
+									detourObjective['movesList'][-1][2], detourObjective['movesList'][-1][3]))
+								sentDirPrevious = self._getopposite(newDir)
 								statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], 
-									detourObjective['kingState'], newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+									detourObjective['kingState'], newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious)
 								tryOppositeDirection = not statedDetourObjective['completed']
 								if statedDetourObjective['completed']:
 									detourEnded = True
 									break
 						else:
 							tryOppositeDirection = True
-					if (abs(y)-ydone > 0 or tryOppositeDirection) and iydir != dirPrevious:
-						detour = ''.join(['m',iydir,' '])
+					if (dirRemaining > 0 or tryOppositeDirection) and opNewDir != dirPrevious:
+						detour = ''.join(['m',opNewDir,' '])
 						detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
 						if detourObjective['legal']:
-							newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
+							newIPos = self._getcoord((detourObjective['movesList'][-1][1], detourObjective['movesList'][-1][2],
 								detourObjective['movesList'][-1][3]))
-							dirPrevious = self._getopposite(iydir)
+							sentDirPrevious = self._getopposite(opNewDir)
 							statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
-								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
-							if statedDetourObjective['completed']:
-								detourEnded = True
-								break
-				elif fatalCommand[1]==ydir:
-					tryOppositeDirection = False
-					if abs(x)-xdone == 0:
-						if xdir != dirPrevious:
-							detour = ''.join(['m',xdir,' '])
-							detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
-							tryOppositeDirection = not detourObjective['legal']
-							if detourObjective['legal']:
-								newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
-									detourObjective['movesList'][-1][3]))
-								dirPrevious = self._getopposite(xdir)
-								statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
-									newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
-								tryOppositeDirection = not statedDetourObjective['completed']
-								if statedDetourObjective['completed']:
-									detourEnded = True
-									break
-						else:
-							tryOppositeDirection = True
-					if (abs(x)-xdone > 0 or tryOppositeDirection) and ixdir != dirPrevious:
-						detour = ''.join(['m',ixdir,' '])
-						detourObjective = self._validObjective(peopleState, kingState, iPos, ''.join([validCommands,detour]), APAvailable)
-						if detourObjective['legal']:
-							newIPos = self._getcoord((int(detourObjective['movesList'][-1][1]), int(detourObjective['movesList'][-1][2]),
-								detourObjective['movesList'][-1][3]))
-							dirPrevious = self._getopposite(ixdir)
-							statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
-								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, dirPrevious)
+								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious)
 							if statedDetourObjective['completed']:
 								detourEnded = True
 								break
 			if fatalCommand[1]==ydir and abs(x)-xdone >=1:
-				if abs(y)-ydone == 1:
-					if abs(x)-xdone == 1:
-						stated = ''.join([
-							validCommands,
-							''.join(['m',xdir,' ']),
-							''.join([objective,ydir,' '])])
-					else:
-						stated = ''.join([
-							validCommands,
-							''.join(['m',xdir,' ']),
-							''.join(['m',ydir,' ']),
-							(abs(x)-xdone-2)*''.join(['m',xdir,' ']),
-							''.join([objective,xdir,' '])])
+				if abs(y)-ydone == 1 and abs(x)-xdone == 1:
+					stated = ''.join([
+						validCommands,
+						''.join(['m',xdir,' ']),
+						''.join([objective,ydir,' '])])
+				elif abs(x)-xdone == 1:
+					xdone+=1
+					stated = ''.join([
+						validCommands,
+						''.join(['m',xdir,' ']),
+						(abs(y)-ydone-1)*''.join(['m',ydir,' ']),
+						''.join([objective,ydir,' '])])
 				else:
 					xdone+=1
 					stated = ''.join([
@@ -862,8 +865,8 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				lastyid = validCommands.rfind(''.join(['m',ydir,' ']))
 				beforelastyid = validCommands[0:lastyid]
 				afterlastyid = validCommands[lastyid+3:len(validCommands)]
-				if abs(x)-xdone ==0:
-					if abs(y)-ydone ==0:
+				if abs(x)-xdone == 0:
+					if abs(y)-ydone == 1:
 						stated =''.join([
 							beforelastyid,
 							afterlastyid,
@@ -908,14 +911,22 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 #-###################################################################################################
 			if longestValidCommands != '':
 				return {'completed':False, 'movesList':self._prettyCommands(str(iPos[0])+' '+str(iPos[1])+' '+longestValidCommands),
-					'APLeft':APLeft, 'error':reason}
+					'APLeft':APLeft, 'error':reason}#voué à disparaitre, sert uniquement pour la première IA de présentation
 			else:
-				return {'completed':False, 'movesList':[], 'APLeft':APLeft, 'error':reason}
+				return {'completed':False, 'movesList':[], 'APLeft':APAvailable, 'error':reason}
 		elif detourEnded:
 			movesList = detourObjective['movesList']+statedDetourObjective['movesList']
 			APLeft = statedDetourObjective['APLeft']
 			peopleState = statedDetourObjective['peopleState']
 			kingState = statedDetourObjective['kingState']
+			newcoord = fPos if objective == 'm' else (movesList[-1][1], movesList[-1][2])
+			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
+				'lastPosition':newcoord}
+		elif killEnded:
+			movesList = killObjective['movesList']+statedKillObjective['movesList']
+			APLeft = statedKillObjective['APLeft']
+			peopleState = statedKillObjective['peopleState']
+			kingState = statedKillObjective['kingState']
 			newcoord = fPos if objective == 'm' else (movesList[-1][1], movesList[-1][2])
 			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':newcoord}
@@ -929,14 +940,16 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':newcoord}
 	
-	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, assassinPattern = True):#minimizeobjectivefun
+	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#minimizeobjectivefun
 		'''
 		this function try to accomplish objective with a minimal amount of AP within APAvailable
-		Revamped, it is now 0-8 times faster (15 seconds for test1, (128 seconds before))
+		Revamped for speed performances
 		'''
 		#WARNING : vérifier que la nouvelle version traite bien tous les cas intéressants (possible perte de certains cas)
 		distance = abs(fPos[0]-iPos[0]) + abs(fPos[1]-iPos[1])
-		if assassinPattern :
+		assassinPattern = (peopleState[iPos[0]][iPos[1]] == "assassin")
+		knightPattern = (peopleState[iPos[0]][iPos[1]] == "knight")
+		if assassinPattern:
 			minCostDist = distance//2
 			maxCostDist = distance
 		else:
@@ -946,27 +959,44 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		tic = time.time()
 		for AP in range(minCostDist, APAvailable+1):
 			if assassinPattern:
-				minDet = (AP-maxCostDist)//2
-				maxDet = AP-minCostDist
+				maxKill = (AP-minCostDist)//2+(AP-minCostDist)%2
+				if maxKill >2:
+					maxKill = 2#this is a rule of the game/ à modifier si on tue tous les chevaliers #knightsleft
+			elif knightPattern:
+				maxKill = AP-minCostDist
+				if maxKill >3:
+					maxKill = 3#there can only be 3 assassins/ à modifier si on tue des assassins #assassinsleft
 			else:
-				minDet = (AP-maxCostDist)//3 if (AP-maxCostDist)%3 ==0 else (AP-maxCostDist)//3+1
-				maxDet = (AP-minCostDist)//2
-			if minDet <0:
-				minDet = 0
-			if maxDet <0:
-				maxDet = 0
-			for detour in range(minDet, maxDet+1):
-				stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour)
-				sys.stdout.write(chr(13))
-				sys.stdout.write("AP : "+str(AP)+" detours : "+str(detour))
-				sys.stdout.flush()
-				if stateObjective['completed']:
-					print("\r\n... Succeeded ("+str(time.time()-tic)+" seconds)")
-					return stateObjective
+				maxKill = 0
+			for kill in range(0, maxKill+1):
+				if assassinPattern:
+					APMove = AP-2*kill+1 if kill > 1 else AP-kill
+					minDet = (APMove-maxCostDist)//2
+					maxDet = APMove-minCostDist
+				else:
+					APMove = AP-kill
+					minDet = (APMove-maxCostDist)//3 if (APMove-maxCostDist)%3 ==0 else (APMove-maxCostDist)//3+1
+					maxDet = (APMove-minCostDist)//2
+				if minDet <0:
+					minDet = 0
+				if maxDet <0:
+					maxDet = 0
+				for detour in range(minDet, maxDet+1):
+					stateObjective = self._stateObjective(peopleState, kingState, iPos, fPos, objective, AP, detour, '', kill)
+					sys.stdout.write(' '*40)
+					sys.stdout.write(chr(13))
+					sys.stdout.write("AP : "+str(AP)+" kills : "+str(kill)+" detours : "+str(detour))
+					sys.stdout.write(chr(13))
+					sys.stdout.flush()
+					if stateObjective['completed']:
+						print("\r\n... Succeeded ("+str(time.time()-tic)+" seconds)")
+						stateObjective['APLeft'] = APAvailable - AP
+						return stateObjective
 		print("\r\n... Failed ("+str(time.time()-tic)+" seconds)")
+		stateObjective['APLeft'] = APAvailable
 		return stateObjective
 	
-	def _nextmove(self, state):#nextmovedrunkheartfun
+	def _nextmove(self, state):#nextmovefun
 		'''
 		 Two possible situations:
 		 - If the player is the first to play, it has to select his/her assassins
@@ -979,6 +1009,8 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		   ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
 		   ('reveal', x, y): reveals villager at position (x,y) as an assassin
 		'''
+		self.TESTSECONDKILL = 0
+		self.KILLCOUNTER = 0
 		try:
 			state = state._state['visible']
 			peopleState = state['people']

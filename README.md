@@ -70,19 +70,25 @@ les villageois et les chevaliers se mettent en formation "coeur", c'est la
 fête. Le roi, ivre, décide de rentrer au chateau en zigzaguant dans la foule.
 Les assassins font la grêve.
 
-# UPDATE 31/05/2016
+# UPDATES
+
+06/06/2016 : Désormais, un nouveau log des updates s'ajoutera au précédent au lieu
+de fusionner avec.
+
+# UPDATE 06/06/2016
 
 CERTAINES INFORMATIONS MENTIONEES CI-DESSUS PEUVENT ETRE OBSOLETES
 
 Le PATHFINDING (methode _stateObjective) gère désormais les détours, peu
 importe le nombre.
 
-Le PATHFINDING cherche désormais le moyen le plus court d'atteindre une 
-destination grace à la méthode _minimizeObjective
+Le PATHFINDING cherche désormais le moyen le moins cher d'atteindre une 
+destination (+effectuer une action) grace à la méthode _minimizeObjective
 
-Le PATHFINDING gère désormais les pushes des chevaliers. Tous les cas sont
-donc gérés, autrement dit : si une possibilité d'action pour un pion existe, 
-le PATHFINDING la trouvera.
+Le PATHFINDING gère désormais les pushes des chevaliers. 
+
+Le PATHFINDING gère désormais le kill des assassins ou des chevaliers
+lors de la recherche d'un chemin.
 
 Ce qu'il manque : la gestion coordonnée de tous les pions du joueur (et pas seulement
 qu'un seul)
