@@ -77,6 +77,17 @@ de fusionner avec.
 
 # UPDATE 06/06/2016
 
+Ajout de _radarKingDefensive, _getcoords ainsi que test4. Ces méthodes permettent
+de chercher et de classer les menaces pour le roi sur le terrain de jeu par
+ordre de priorité. Beaucoup de fonctionnalités radar sont prévues, et verront
+le jour dans de nouvelles fonctions (ou fusionneront avec celle-ci). Le test
+vérifie que la fonction fonctionne correctement.
+
+radars prévus : radarKingOffensive/Defensive, radarKnightOffensive/Defensive,
+radarVillagerOffensive/Defensive
+
+# UPDATE 06/06/2016 et précédentes
+
 CERTAINES INFORMATIONS MENTIONEES CI-DESSUS PEUVENT ETRE OBSOLETES
 
 Le PATHFINDING (methode _stateObjective) gère désormais les détours, peu

@@ -13,7 +13,7 @@ from lib import game
 from kingandassassins import KingAndAssassinsState, KingAndAssassinsServer, KingAndAssassinsClient
 
 
-ACTUALTESTNUMBER = 3
+ACTUALTESTNUMBER = 4
 
 
 CARDS = None 
@@ -217,15 +217,111 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
-
+		elif self.test == "test4":
+			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
+			
+			BOARD = (
+				('G', 'G', 'G', 'R', 'G', 'R', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'R', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('R', 'G', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+			)
+			
+			metaI, metaJ = 4,3
+			metaX, metaY = 0,0
+			KNIGHTS = {}
+			VILLAGERS = {(0,6), (1,2), (3,0), (4,1)}
+				
+			metaDET = 10
+			metaAP = 100
+			
+			CARDS = (
+				# (AP King, AP Knight, Fetter, AP Population/Assassins)
+				(100, 100, True, metaAP),
+				(100, 100, True, metaAP)
+			)
+			
+			PEOPLE = [[None for column in range(10)] for row in range(10)]
+			
+			for coord in KNIGHTS:
+				PEOPLE[coord[0]][coord[1]] = 'knight'
+			
+			PEOPLE[metaI][metaJ] = 'assassin'
+			PEOPLE[metaX][metaY] = 'king'
+			
+			for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+				PEOPLE[coord[0]][coord[1]] = villager
+				
+			KA_INITIAL_STATE = {
+				'board': BOARD,
+				'people': PEOPLE,
+				'castle': [(2, 2, 'N'), (4, 1, 'W')],
+				'card': None,
+				'king': 'healthy',
+				'lastopponentmove': [],
+				'arrested': [],
+				'killed': {
+					'knights': 0,
+					'assassins': 0
+				}
+			}
+			
+class KingAndAssassinstest4Client(KingAndAssassinsClient):
+	'''
+	test4 : ce test vérifie que la fonction radarKingDefensive fonctionne
+	correctement (càd renvoie les positions survolées par le radar, ainsi
+	que les potentielles menaces détectées, classées par priorité)
+	'''
+	
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
+		super().__init__(name, server, verbose=verbose, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE)
+			
+	def _nextmove(self, state):#nextmovefun
+		global metaX
+		global metaY
+		global metaAP
+		global metaDET
+		global metaI
+		global metaJ
+		self.TESTSECONDKILL = 0
+		self.KILLCOUNTER = 0
+		try:
+			state = state._state['visible']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
+			self.turns+=1
+			if state['card'] is None:
+				self.turns-=1
+				return json.dumps({'assassins': [peopleState[0][6], peopleState[1][2], peopleState[3][0]]}, separators=(',', ':'))
+			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
+				if self._playernb == 0:
+					return json.dumps({'actions': []}, separators=(',', ':'))
+				else:
+					radarKingDefensive = self._radarKingDefensive(peopleState, (metaX,metaY), 5)
+					print(str(radarKingDefensive['prioritiesDictionary']))
+					print('')
+					print(str(radarKingDefensive['scannedPositions'].keys()))
+					return json.dumps({'actions': []}, separators=(',', ':'))
+		except Exception as e:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")			
+			
 class KingAndAssassinstest3Client(KingAndAssassinsClient):
 	'''
 	test3 : ce test évalue la capacité d'un assassin de tuer des chevaliers sur son chemin pour atteindre le roi et l'attaquer
 	aucun passage sur le toit => imaginer un test qui met a l'épreuve l'assassin sur un parcourt contenant des déplacements
 	gratuits (devrait fonctionner sans problème)
-	
-	problème : trouve le combo : 16 AP 2 kills 1 détour
-	mais pas le combo          : 16 AP 1 kill  2 détours
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):

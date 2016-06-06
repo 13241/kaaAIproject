@@ -441,6 +441,100 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''	
 		pass
 		
+	def _radarKingDefensive(self, peopleState, iPos, AP):#radarkingdefensivefun
+		'''
+		cette fonction parcourt le terrain de jeu autour du roi à la recherche
+		d'éventuels villageois qui pourraient être des assassins et
+		menacer de faire un dégat sur le roi.
+		Un classement par priorité de menace se fait : la plus petite priorité
+		équivaut au villageois le plus près. Si le niveau de priorité est 0 :
+		il y a un assassin révélé sur cette case
+		'''
+		posDict = {}
+		extDict = {}
+		prioDict = {}
+		utmosts = self._getcoords(iPos, set())
+		extDict[1] = []
+		prioDict[0] = []
+		prioDict[1] = []
+		for utmost in utmosts:
+			occupation = peopleState[utmost[0][0]][utmost[0][1]]
+			posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':1, 'occupation':occupation}
+			extDict[1].append(utmost[0])
+			if occupation == "assassin":
+				posDict[utmost[0]]['priority'] = 0
+				prioDict[0].append(utmost[0])
+			elif occupation is not None and occupation != "king" and occupation != "knight":
+				prioDict[1].append(utmost[0])
+		for APLeft in range(2,AP+1):
+			if APLeft<AP:
+				extDict[APLeft] = []
+				prioDict[APLeft] = []
+			utmosts = []
+			for previous in extDict[APLeft-1]:
+				utmosts += self._getcoords(previous, posDict[previous]['directionsSet'])
+			for utmost in utmosts:
+				if utmost[2] == 'GR':
+					if utmost[0] not in posDict.keys():
+						update = True
+					elif posDict[utmost[0]]['priority'] > APLeft-1:
+						update = True
+					else:
+						update = False
+					if update:
+						occupation = peopleState[utmost[0][0]][utmost[0][1]]
+						posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':APLeft-1, 'occupation':occupation}
+						extDict[APLeft-1].append(utmost[0])
+						newUtmosts = self._getcoords(utmost[0], posDict[utmost[0]]['directionsSet'])
+						utmosts += newUtmosts
+						if occupation == "assassin":
+							posDict[utmost[0]]['priority'] = 0
+							prioDict[0].append(utmost[0])
+						elif occupation is not None and occupation != "king" and occupation != "knight":
+							prioDict[APLeft-1].append(utmost[0])
+				elif APLeft<AP:
+					if utmost[0] not in posDict.keys():
+						update = True
+					elif posDict[utmost[0]]['priority']>APLeft:
+						update = True
+					else:
+						update = False
+					if update:
+						occupation = peopleState[utmost[0][0]][utmost[0][1]]
+						posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':APLeft, 'occupation':occupation}
+						extDict[APLeft].append(utmost[0])
+						if occupation == "assassin":
+							posDict[utmost[0]]['priority'] = 0
+							prioDict[0].append(utmost[0])
+						elif occupation is not None and occupation != "king" and occupation != "knight":
+							prioDict[APLeft].append(utmost[0])
+		return {'prioritiesDictionary': prioDict, 'scannedPositions':posDict}
+
+	def _getcoords(self, pos, dirSet):#getcoordsfun
+		'''
+		cette methode permet d'obtenir les cases adjacentes à pos
+		tout en tenant compte des directions contenues dans dirSet : 
+		si dirSet est vide on veut toutes les cases adjacentes
+		si dirSet contient des directions, on veut toutes les cases 
+		adjacentes sauf les directions opposées à celles contenues
+		dans dirSet
+		'''
+		if pos[0] >= 0 and pos[1] >= 0 and pos[0]<len(self.BOARD) and pos[1]<len(self.BOARD[0]):
+			directions = ['N','S','E','W']
+			coords = []
+			for direction in dirSet:
+				directions.pop(directions.index(self._getopposite(direction)))
+			for direction in directions:
+				coord = self._getcoord((pos[0], pos[1], direction))
+				if coord[0] >= 0 and coord[1] >= 0 and coord[0]<len(self.BOARD) and coord[1]<len(self.BOARD[0]):
+					newDirSet = dirSet
+					newDirSet.add(direction)
+					transition = self.BOARD[pos[0]][pos[1]]+self.BOARD[coord[0]][coord[1]]
+					coords.append((coord, newDirSet, transition))
+			return coords
+		else:
+			return []
+	
 	def _getcoord(self, coord):#getcoordfun
 		'''
 		returns a tuple of coordinates deplaced in a certain DIRECTION (N, S, E, W)
