@@ -616,7 +616,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		
 		Warnings : 
 		The moveList MUST return True when called with _validMove
-		peopleState may be modified
+		peopleState will be modified
 		'''
 		if moveList[0] == 'move':#updatecopymove
 			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
@@ -802,6 +802,10 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 							self.KILLCOUNTER-=1
 							if self.KILLCOUNTER == 0:
 								self.TESTSECONDKILL=0
+					elif killObjective['fatalMoveString'][0]=='m' and peopleState[iPos[0]][iPos[1]]=="assassin":
+						self.KILLCOUNTER-=1
+						if self.KILLCOUNTER == 0:
+							self.TESTSECONDKILL=0
 			if nDetour>0:
 				if fatalCommand[1]==xdir or fatalCommand[1]==ydir:
 					wrongDir = fatalCommand[1]
@@ -819,7 +823,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 									detourObjective['movesList'][-1][2], detourObjective['movesList'][-1][3]))
 								sentDirPrevious = self._getopposite(newDir)
 								statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], 
-									detourObjective['kingState'], newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious)
+									detourObjective['kingState'], newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious, nKill)
 								tryOppositeDirection = not statedDetourObjective['completed']
 								if statedDetourObjective['completed']:
 									detourEnded = True
@@ -834,7 +838,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 								detourObjective['movesList'][-1][3]))
 							sentDirPrevious = self._getopposite(opNewDir)
 							statedDetourObjective = self._stateObjective(detourObjective['peopleStateCopy'], detourObjective['kingState'],
-								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious)
+								newIPos, fPos, objective, detourObjective['APLeft'], nDetour-1, sentDirPrevious, nKill)
 							if statedDetourObjective['completed']:
 								detourEnded = True
 								break

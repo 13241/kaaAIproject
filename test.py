@@ -223,6 +223,9 @@ class KingAndAssassinstest3Client(KingAndAssassinsClient):
 	test3 : ce test évalue la capacité d'un assassin de tuer des chevaliers sur son chemin pour atteindre le roi et l'attaquer
 	aucun passage sur le toit => imaginer un test qui met a l'épreuve l'assassin sur un parcourt contenant des déplacements
 	gratuits (devrait fonctionner sans problème)
+	
+	problème : trouve le combo : 16 AP 2 kills 1 détour
+	mais pas le combo          : 16 AP 1 kill  2 détours
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -256,7 +259,6 @@ class KingAndAssassinstest3Client(KingAndAssassinsClient):
 					stateObjective = self._minimizeObjective(peopleStateCopy, kingState, (metaI,metaJ), (metaX,metaY), 't', metaAP)
 					if stateObjective['completed']:
 						finalCommandsList += stateObjective['movesList']
-						print(str(stateObjective['APLeft']))
 						stateObjective = self._minimizeObjective(stateObjective['peopleState'], stateObjective['kingState'], 
 							stateObjective['lastPosition'], (metaX,metaY), 't', stateObjective['APLeft'])
 						if stateObjective['completed']:
