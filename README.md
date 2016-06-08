@@ -1,4 +1,4 @@
-# kaaAIproject
+﻿# kaaAIproject
 The game King and Assassins with AI, single player, two players and launcher. You can run the tests too.
 
 On Windows : launch kaalauncher.py
@@ -108,5 +108,3 @@ qu'un seul)
 
 GROS aménagement du code principal pour effectuer des tests, 
 utiliser le launcher sous windows pour lancer les tests
-
-à restructurer : réflexion IA.xlsx ainsi que la fonction _stateObjective
