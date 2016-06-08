@@ -1,3 +1,4 @@
+#top
 import argparse
 import json
 import random
@@ -6,7 +7,6 @@ import sys
 import traceback
 import copy
 import time
-#-###################################################################################################
 
 from lib import game
 
@@ -14,7 +14,7 @@ from kingandassassins import KingAndAssassinsState, KingAndAssassinsServer, King
 
 
 ACTUALTESTNUMBER = 4
-
+#see the classes below to know what each test stands for (search "#testx" where x is a number)
 
 CARDS = None 
 POPULATION = None 
@@ -82,7 +82,6 @@ class GlobalVariableAffectation():
 			metaAP = 100
 			
 			CARDS = (
-				# (AP King, AP Knight, Fetter, AP Population/Assassins)
 				(100, 100, True, metaAP),
 				(100, 100, True, metaAP)
 			)
@@ -133,7 +132,6 @@ class GlobalVariableAffectation():
 			metaAP = 100
 			
 			CARDS = (
-				# (AP King, AP Knight, Fetter, AP Population/Assassins)
 				(100, 100, True, metaAP),
 				(100, 100, True, metaAP)
 			)
@@ -188,7 +186,6 @@ class GlobalVariableAffectation():
 			metaAP = 100
 			
 			CARDS = (
-				# (AP King, AP Knight, Fetter, AP Population/Assassins)
 				(100, 100, True, metaAP),
 				(100, 100, True, metaAP)
 			)
@@ -242,7 +239,6 @@ class GlobalVariableAffectation():
 			metaAP = 100
 			
 			CARDS = (
-				# (AP King, AP Knight, Fetter, AP Population/Assassins)
 				(100, 100, True, metaAP),
 				(100, 100, True, metaAP)
 			)
@@ -272,11 +268,14 @@ class GlobalVariableAffectation():
 				}
 			}
 			
-class KingAndAssassinstest4Client(KingAndAssassinsClient):
+class KingAndAssassinstest4Client(KingAndAssassinsClient):#test4
 	'''
-	test4 : ce test vérifie que la fonction radarKingDefensive fonctionne
-	correctement (càd renvoie les positions survolées par le radar, ainsi
-	que les potentielles menaces détectées, classées par priorité)
+	test4 : this test prints the results of radarKingDefensive for a certain situation
+	so we can check if the result is really what we expected.
+	the king is surrounded by some villagers and an assassin
+	the function must return the threats to the king and all the squares analized
+	
+	this test is successful (see reflexion IA.xlsx to compare with expected result)
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -317,11 +316,13 @@ class KingAndAssassinstest4Client(KingAndAssassinsClient):
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")			
 			
-class KingAndAssassinstest3Client(KingAndAssassinsClient):
+class KingAndAssassinstest3Client(KingAndAssassinsClient):#test3
 	'''
-	test3 : ce test évalue la capacité d'un assassin de tuer des chevaliers sur son chemin pour atteindre le roi et l'attaquer
-	aucun passage sur le toit => imaginer un test qui met a l'épreuve l'assassin sur un parcourt contenant des déplacements
-	gratuits (devrait fonctionner sans problème)
+	test3 : this test evaluates the ability of PATHFINDING to make an assassin kill some knights on his way to reach the king
+	and attack him.
+	this test does not have any roof
+	
+	this test is successful
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -368,12 +369,13 @@ class KingAndAssassinstest3Client(KingAndAssassinsClient):
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")			
 			
-class KingAndAssassinstest2Client(KingAndAssassinsClient):
+class KingAndAssassinstest2Client(KingAndAssassinsClient):#test2
 	'''
-	test2 : Ce test évalue la capacité du pathfinding à se sortir d'une situation ou le chevalier
-	doit pousser certains villageois mais pas tous pour atteindre sa destination, ainsi que
-	tuer un assassin en chemin (15 AP, 2 détours)
-	Ce test comporte des passages sur toit.
+	test2 : this test evaluates the ability of PATHFINDING to make a knight push some villagers
+	to successfully reach its destination. But some pushes in this test will make it impossible for him to do so
+	this tests has roofs
+	
+	this test is successful
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -414,13 +416,13 @@ class KingAndAssassinstest2Client(KingAndAssassinsClient):
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 			
-class KingAndAssassinstest1Client(KingAndAssassinsClient):
+class KingAndAssassinstest1Client(KingAndAssassinsClient):#test1
 	'''
-	test1 : Ce teste évalue la performance des fonctions de pathfinding pour des pions de type 
-	villageois sur un terrain sans toit encombré par d'autres villageois.
-	Le terrain est un labyrinthe qui se résout en 28 déplacements dont 10 détours (autrement dit :
-	20 déplacements servent à contourner des obstacles, et la distance avec l'objectif est de 8)
+	test1 : this test evaluates the performance of PATHFINDING functions for villagers pawns
+	on a board without roof where other villagers stand
+	the board is a maze of villagers and one of them must reach its destination
 	
+	this test is successful
 	'''
 	
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
@@ -506,3 +508,4 @@ if __name__ == '__main__':#main
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 	a = input("Enter")
+#bottom

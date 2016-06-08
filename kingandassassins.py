@@ -12,14 +12,13 @@ import sys
 import traceback
 import copy
 import time
-#-###################################################################################################
 
 from lib import game
 
 BUFFER_SIZE = 2048
 
+#see glossary : #CARDS
 CARDS = (
-	# (AP King, AP Knight, Fetter, AP Population/Assassins)
 	(1, 6, True, 5),
 	(1, 5, False, 4),
 	(1, 6, True, 5),
@@ -37,11 +36,13 @@ CARDS = (
 	(1, 5, False, 4)
 )
 
+#see glossary : #POPULATION
 POPULATION = {
 	'monk', 'plumwoman', 'appleman', 'hooker', 'fishwoman', 'butcher',
 	'blacksmith', 'shepherd', 'squire', 'carpenter', 'witchhunter', 'farmer'
 }
 
+#see glossary : #BOARD
 BOARD = (
 	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
 	('R', 'R', 'R', 'R', 'R', 'G', 'G', 'R', 'R', 'R'),
@@ -55,21 +56,22 @@ BOARD = (
 	('R', 'R', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
 )
 
-# Coordinates of pawns on the board
+#see glossary : #KNIGHTS
 KNIGHTS = {(1, 3), (3, 0), (7, 8), (8, 7), (8, 8), (8, 9), (9, 8)}
 
+#see glossary : #VILLAGERS
 VILLAGERS = {
 	(1, 7), (2, 1), (3, 4), (3, 6), (5, 2), (5, 5),
 	(5, 7), (5, 9), (7, 1), (7, 5), (8, 3), (9, 5)
 }
 
-# Separate board containing the position of the pawns
+#see glossary : #PEOPLE
 PEOPLE = [[None for column in range(10)] for row in range(10)]
 
-# Place the king in the right-bottom corner
+# Places the king in the right-bottom corner
 PEOPLE[9][9] = 'king'
 
-# Place the knights on the board
+# Places the knights on the board
 for coord in KNIGHTS:
 	PEOPLE[coord[0]][coord[1]] = 'knight'
 
@@ -79,6 +81,7 @@ for coord in KNIGHTS:
 for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
 	PEOPLE[coord[0]][coord[1]] = villager
 
+#see glossary : #KA_INITIAL_STATE
 KA_INITIAL_STATE = {
 	'board': BOARD,
 	'people': PEOPLE,
@@ -94,8 +97,7 @@ KA_INITIAL_STATE = {
 }
 
 class KingAndAssassinsState(game.GameState):#stateclass
-	'''Class representing a state for the King & Assassins game.'''
-
+	'''represents a state for the King & Assassins game.'''
 	DIRECTIONS = {
 		'E': (0, 1),
 		'W': (0, -1),
@@ -107,7 +109,10 @@ class KingAndAssassinsState(game.GameState):#stateclass
 
 	def __init__(self, initialstate=KA_INITIAL_STATE, POPULATION=POPULATION, BOARD=BOARD):#initfun
 		'''
-		needs : self.POPULATION, self.BOARD
+		arguments : 
+		-	initialstate : #see glossary : #KA_INITIAL_STATE
+		-	POPULATION : #see glossary : #POPULATION
+		-	BOARD : #see glossary : #BOARD
 		'''
 		self.POPULATION = POPULATION
 		self.BOARD = BOARD
@@ -120,41 +125,49 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		super().__init__(initialstate)
 
 	def _nextfree(self, x, y, dir):#nextfreefun
-		nx, ny = self._getcoord((x, y, dir))
+		'''
+		this method was not recovered from the official repository : knight push is treated differently in the update method
+		
+		arguments : 
+			see glossary : #action >elements
+		'''
+		pass #nx, ny = self._getcoord((x, y, dir))
 
 	def update(self, moves, player):#updatefun
+		'''
+		updates the state of the game each turn and for each action
+		each action will be checked and has to follow the rules of the games
+		
+		arguments : 
+			moves : list of actions : see glossary : #action
+			player : index of the player (int : 0-1)
+		'''
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		people = visible['people']
-#-###################################################################################################
 		for move in moves:
 			# ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
 			if move[0] == 'move':#updatemove
 				x, y, d = int(move[1]), int(move[2]), move[3]
 				if x<0 or y <0 or x>9 or y>9:
 					raise game.InvalidMoveException('{}: cannot select out of the map'.format(move))
-#-###################################################################################################	
 				p = people[x][y]
 				if p is None:
 					raise game.InvalidMoveException('{}: there is no one to move'.format(move))
 				nx, ny = self._getcoord((x, y, d))
 				if nx<0 or ny <0 or nx>9 or ny>9:
 					raise game.InvalidMoveException('{}: cannot move/act out of the map'.format(move))
-#-###################################################################################################	
 				new = people[nx][ny]
 				if p == 'king' and ((x, y, d) == visible['castle'][0] or (x, y, d) == visible['castle'][1]):
 					if self.APKING >= 1:
 						self.APKING-=1
 						people[x][y], people[nx][ny] = people[nx][ny], people[x][y]
 						continue
-#-###################################################################################################
 				# King, assassins, villagers can only move on a free cell
 				if p != 'knight' and new is not None:
 					raise game.InvalidMoveException('{}: cannot move on a cell that is not free'.format(move))
 				if p == 'king' and self.BOARD[nx][ny] == 'R':
 					raise game.InvalidMoveException('{}: the king cannot move on a roof'.format(move))
-				#if p in {'assassin'} + self.POPULATION and player != 0:
-#-###################################################################################################
 				if p in {'assassin'} | self.POPULATION and player != 0:
 					raise game.InvalidMoveException('{}: villagers and assassins can only be moved by player 0'.format(move))
 				if p in {'king', 'knight'} and player != 1:
@@ -176,7 +189,6 @@ class KingAndAssassinsState(game.GameState):#stateclass
 						self.APCOM-=cost
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
-#-###################################################################################################
 					people[x][y], people[nx][ny] = people[nx][ny], people[x][y]
 				# If cell is not free, check if the knight can push villagers
 				else:
@@ -206,15 +218,12 @@ class KingAndAssassinsState(game.GameState):#stateclass
 							nx, ny = loc[0], loc[1]
 					else:
 						raise game.InvalidMoveException("{}: The knight can not push this way".format(move))
-#-###################################################################################################
 			# ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
 			elif move[0] == 'arrest':#updatearrest
-#-###################################################################################################
 				if player != 1:
 					raise game.InvalidMoveException('arrest action only possible for player 1')
 				if not self.CUFFS:
 					raise game.InvalidMoveException('arrest action only possible if the drawn card says so')
-#-###################################################################################################
 				x, y, d = int(move[1]), int(move[2]), move[3]
 				arrester = people[x][y]
 				if arrester != 'knight':
@@ -228,8 +237,7 @@ class KingAndAssassinsState(game.GameState):#stateclass
 				if self.APKNIGHT >= 1:
 					self.APKNIGHT-=1
 				else:
-					raise game.InvalidMoveException('{}: not enough AP left'.format(move))
-#-###################################################################################################					
+					raise game.InvalidMoveException('{}: not enough AP left'.format(move))			
 				visible['arrested'].append(people[tx][ty])
 				people[tx][ty] = None
 			# ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
@@ -257,19 +265,15 @@ class KingAndAssassinsState(game.GameState):#stateclass
 						self.APCOM-=cost
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
-#-###################################################################################################
 					visible['killed']['knights'] += 1
 					people[tx][ty] = None
-#-###################################################################################################
 				elif killer == 'knight' and target == 'assassin':
 					if self.APKNIGHT >= 1:
 						self.APKNIGHT-=1
 					else:
 						raise game.InvalidMoveException('{}: not enough AP left'.format(move))
-#-###################################################################################################
 					visible['killed']['assassins'] += 1
 					people[tx][ty] = None
-#-###################################################################################################
 				else:
 					raise game.InvalidMoveException('{}: forbidden kill'.format(move))
 			# ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
@@ -288,7 +292,6 @@ class KingAndAssassinsState(game.GameState):#stateclass
 					self.APCOM-=2
 				else:
 					raise game.InvalidMoveException('{}: not enough AP left'.format(move))
-#-###################################################################################################
 				visible['king'] = 'injured' if visible['king'] == 'healthy' else 'dead'
 			# ('reveal', x, y): reveals villager at position (x,y) as an assassin
 			elif move[0] == 'reveal':#updatereveal
@@ -308,10 +311,29 @@ class KingAndAssassinsState(game.GameState):#stateclass
 			self.APCOM = visible['card'][3]
 			self.SECONDKILL = 0
 			self.KILLCOUNT = 0
+			
 	def _getcoord(self, coord):#getcoordfun
+		'''
+		returns a tuple of coordinates updated after a move in a certain direction
+		
+		arguments : 
+			coord : (x, y, dir)
+				see glossary : #action >elements
+		
+		returns :
+			(x, y) see glossary : #action >elements
+		'''
 		return tuple(coord[i] + KingAndAssassinsState.DIRECTIONS[coord[2]][i] for i in range(2))
 
 	def winner(self):#winnerfun
+		'''
+		returns differents values for an ended game
+		does nothing for an ongoing game
+		
+		returns : x such as x is included in [-1,1]
+		or
+		returns : nothing
+		'''
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		# The king reached the castle
@@ -331,12 +353,26 @@ class KingAndAssassinsState(game.GameState):#stateclass
 		return -1
 
 	def isinitial(self):#isinitialfun
+		'''
+		States if the board is untouched (True) or not (False)
+		
+		returns : (bool)
+		'''
 		return self._state['hidden']['assassins'] is None
 
 	def setassassins(self, assassins):#setassassinsfun
+		'''
+		Registers assassins in the hidden part of the ongoing game data as a set
+		
+		arguments :
+			assassins : collection of str
+		'''
 		self._state['hidden']['assassins'] = set(assassins)
 
 	def prettyprint(self):#prettyprintfun
+		'''
+		Prints the state of the game (console)
+		'''
 		visible = self._state['visible']
 		hidden = self._state['hidden']
 		result = ''
@@ -355,15 +391,23 @@ class KingAndAssassinsState(game.GameState):#stateclass
 
 	@classmethod
 	def buffersize(cls):#buffersizefun
+		'''
+		returns the buffer size (bits)
+		'''
 		return BUFFER_SIZE
 
 
 class KingAndAssassinsServer(game.GameServer):#serverclass
-	'''Class representing a server for the King & Assassins game'''
+	'''represents a server for the King & Assassins game'''
 
 	def __init__(self, verbose=False, CARDS = CARDS, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):#initfun
 		'''
-		needs : self.CARDS, self.POPULATION
+		arguments :
+			verbose : prints console related informations (True) or nothing (False)
+			CARDS : see glossary : #CARDS
+			POPULATION : see glossary : #POPULATION
+			BOARD : see glossary : #BOARD
+			KA_INITIAL_STATE : see glossary : #KA_INITIALSTATE
 		'''
 		self.POPULATION = POPULATION
 		self.CARDS = CARDS
@@ -374,6 +418,13 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 		}
 
 	def _setassassins(self, move):#setassassinsfun
+		'''
+		Checks whether the move that declares assassins is legal or not
+		if it is, modifies the ongoing game data
+		
+		arguments : 
+			move : see glossary : #action
+		'''
 		state = self._state
 		if 'assassins' not in move:
 			raise game.InvalidMoveException('The dictionary must contain an "assassins" key')
@@ -390,6 +441,12 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 		state.update([], 0)
 
 	def applymove(self, move):#applymovefun
+		'''
+		Applies the move and modifies the ongoing game data
+		
+		arguments :
+			move : see glossary : #action
+		'''
 		try:
 			state = self._state
 			move = json.loads(move)
@@ -400,17 +457,22 @@ class KingAndAssassinsServer(game.GameServer):#serverclass
 		except game.InvalidMoveException as e:
 			raise e
 		except Exception as e:
-			traceback.print_exc(file=sys.stdout)
-#-###################################################################################################			
+			traceback.print_exc(file=sys.stdout)	
 			raise game.InvalidMoveException('A valid move must be a dictionary')
 
 
 class KingAndAssassinsClient(game.GameClient):#clientclass
-	'''Class representing a client for the King & Assassins game'''
+	'''represents a client for the King & Assassins game'''
 
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
 		'''
-		needs : self.BOARD, self.POPULATION
+		arguments : 
+			name : name of the client 
+			server : server (tuple : (hostIP, port))
+			verbose : prints console related informations (True) or nothing (False)
+			POPULATION : see glossary : #POPULATION
+			BOARD : see glossary : #BOARD
+			KA_INITIAL_STATE : see glossary : #KA_INITIAL_STATE
 		'''
 		self.BOARD = BOARD
 		self.POPULATION = POPULATION
@@ -430,25 +492,44 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 
 	def _handle(self, message):#handlefun
+		'''
+		no use of this for now
+		'''
 		pass
 	
 	def _radar(self, state, coord, alAP, enAP):#radarfun
 		'''
-		dangers esquivables
-		dangers inesquivables
-		priorite (assassin/roi en danger)
-		=>si les 3 assassins sont reveles, on ne tient plus compte des villageois
+		6 incoming types of radar
 		'''	
 		pass
 		
 	def _radarKingDefensive(self, peopleState, iPos, AP):#radarkingdefensivefun
 		'''
-		cette fonction parcourt le terrain de jeu autour du roi à la recherche
-		d'éventuels villageois qui pourraient être des assassins et
-		menacer de faire un dégat sur le roi.
-		Un classement par priorité de menace se fait : la plus petite priorité
-		équivaut au villageois le plus près. Si le niveau de priorité est 0 :
-		il y a un assassin révélé sur cette case
+		Roams over the board around the king in search of villagers assuming they are
+		assassins with a certain amount of AP.
+		Makes a priority ranking for those villagers and a list of all the analyzed squares
+		
+		arguments : 
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			iPos : (x, y) coordinates of the radar-calling-pawn see glossary : #action >elements
+			AP : actions points of the enemy see glossary : #CARDS >elements
+			
+		returns : dictionary 
+			{
+				'scannedPositions' : {
+					(x, y): see glossary : #action >elements
+						{
+							'directionsSet': (dir, ...) see glossary : #action >elements
+							'priority': value (int) : 0-n, 0 is the highest priority
+							'occupation': name (str) : name of a pawn
+							},
+					...}
+				'prioritiesDictionary' : {
+					priority: (int) : 0-n, 0 is the highest priority
+						[ 
+							(x, y), see glossary : #action >elements
+							...]}
+				}
 		'''
 		posDict = {}
 		extDict = {}
@@ -512,12 +593,26 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 
 	def _getcoords(self, pos, dirSet):#getcoordsfun
 		'''
-		cette methode permet d'obtenir les cases adjacentes à pos
-		tout en tenant compte des directions contenues dans dirSet : 
-		si dirSet est vide on veut toutes les cases adjacentes
-		si dirSet contient des directions, on veut toutes les cases 
-		adjacentes sauf les directions opposées à celles contenues
-		dans dirSet
+		returns the adjacent squares to coordinate pos while following the
+		flow indicated by the directions in dirSet :
+		if dirSet has no element, returns all adjacent squares,
+		if dirSet has at least one element, returns all adjacent
+		squares except in the opposites directions of those in
+		dirSet. 
+		It also indicates the ground-level transition from pos
+		to the adjacent squares and the new flow of directions
+		
+		arguments :
+			pos : (x, y) see glossary : #actions >elements
+			dirSet : (dir, ...) see glossary : #actions >element
+			
+		returns : list of tuple
+			[
+				(coord, newDirSet, transition),
+				...]
+			coord : (x, y) see glossary : #actions >elements
+			newDirSet : (dir, ...) see glossary : #actions >element
+			transition : ground-level+ground-level (str) see glossary : #BOARD >element
 		'''
 		if pos[0] >= 0 and pos[1] >= 0 and pos[0]<len(self.BOARD) and pos[1]<len(self.BOARD[0]):
 			directions = ['N','S','E','W']
@@ -538,6 +633,12 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	def _getcoord(self, coord):#getcoordfun
 		'''
 		returns a tuple of coordinates deplaced in a certain DIRECTION (N, S, E, W)
+		
+		arguments : 
+			coord : (x, y, dir) see glossary : #action >elements
+			
+		returns :
+			(x, y) see glossary : #action >elements
 		'''
 		return tuple(coord[i] + self.DIRECTIONS[coord[2]][i] for i in range(2))
 	
@@ -545,6 +646,16 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		'''
 		returns the DIRECTIONS elements that describe movement for x and y in a tuple
 		WARNING : null values return S-E
+		
+		arguments :
+			movement : (xs, ys)
+				xs : (int) distance in vertical direction, positive_0 - downward, negative - upward
+				ys : (int) distance in horizontal direction, positive_0 - rightward, negative - leftward
+				
+		returns :
+			(xdir, ydir) :
+				xdir : global vertical direction of the movement as a dir see glossary : #action >element
+				ydir : global horizontal direction of the movement as a dir see glossary : #action >element
 		'''
 		xs, ys = movement[0], movement[1]
 		xdir = 'S' if xs >= 0 else 'N'
@@ -552,6 +663,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		return (xdir, ydir)
 	
 	def _getopposite(self, dir):#getoppositefun
+		'''
+		returns the opposite direction of dir
+		
+		arguments : dir see glossary : #action >element
+		
+		returns : dir see glossary : #action >element
+		'''
 		oppositeDir = 'NS'.strip(dir)
 		oppositeDir = 'WE'.strip(dir) if len(oppositeDir)==2 else oppositeDir
 		oppositeDir = '' if len(oppositeDir)==2 else oppositeDir
@@ -559,14 +677,21 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _validMove(self, peopleState, moveList):#validmovefun
 		'''
-		the purpose of this function is to determine whether a moveList will pass the
-		kingAndAssassinsState._update(...) method without raising an error (except for cost error)
-		it returns a dictionary containing :
-		- the cost of the moveList
-		- whether the moveList is legal or not (True/False)
+		the purpose of this function is to determine whether a move is legal or not on the
+		actual state of the board, the cost of this move, and whether the moves pushed
+		any other pawns or not
+		WARNING : this method does not take account of the remaining available AP for this turn
 		
-		WARNING : a valid moveList can raise an error in the _update method if there is not enough
-		AP left for this moveList
+		arguments :
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			moveList : an action see glossary : #action >element
+		
+		returns : dictionary
+			{
+				'cost' : (int) action points
+				'legal' : (bool) whether the action is legal or not
+				'push' : (bool) whether the move pushed some pawns or not
+				}
 		'''
 		returnValue = {'cost':0,'legal':False,'push':False}
 		player = self._playernb
@@ -705,12 +830,22 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _updateCopy(self, peopleState, kingState, moveList):#updatecopyfun
 		'''
-		this method's purpose is to simulate a moveList on a copy of peopleState
-		to check the new state of the game. 
-		
-		Warnings : 
-		The moveList MUST return True when called with _validMove
-		peopleState will be modified
+		applies a moveList on peopleState and return the new state of the game as well 
+		as the new state of the king
+		WARNINGS : 
+			The moveList MUST return True when called with _validMove
+			peopleState will be modified
+			
+		arguments : 
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			kingState : (str) status of the king ('healty', 'injured', 'dead')
+			moveList : an action see glossary : #action >element
+			
+		returns : dictionary 
+			{
+				'peopleState' : peopleState an updated version of PEOPLE see glossary : #PEOPLE
+				'kingState' : kingState (str) status of the king ('healty', 'injured', 'dead')
+				}
 		'''
 		if moveList[0] == 'move':#updatecopymove
 			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
@@ -756,14 +891,19 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _prettyCommands(self, movesString):#prettycommandsfun
 		'''
-		this function convert a string command as described in kingAndAssassinsHumanClient class
-		into a list of commands as described in _nextmove from kingAndAssassinsClient class
+		converts a string command into a list of actions
+		
+		arguments : 
+			movesString : see glossary : #command
+			
+		returns : 
+			movesList : see glossary : #action
 		'''
 		movesList = []
 		movesString = movesString.strip(' +')
 		movesStringList = movesString.split(' + ')
 		for i in range(len(movesStringList)):
-			movesStringList[i] = movesStringList[i].split(' ')#regex ' + ' ou '+'
+			movesStringList[i] = movesStringList[i].split(' ')#regex ' + ' or '+'
 			x = int(movesStringList[i][0])
 			y = int(movesStringList[i][1])
 			commandsList = movesStringList[i][2:len(movesStringList[i])]
@@ -783,12 +923,42 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _validObjective(self, peopleState, kingState, iPos, commands, APLeft):#validobjectivefun
 		'''
-		this function tests a set of actions (commands) on the piece at iPos for the price of APLeft
-		it returns a dictionary with the following keys :
-		{legal, movesList, APLeft, peopleStateCopy, kingState} if the set of actions can be done
-		{legal, validCommands, APLeft, fatalMoveString, lastValidPosition} if it can not be done
+		this function tests a string command that stands for multiple actions on the pawn at iPos for the price of APLeft and
+		evaluates if each action in command is legal and if there are enough AP. It returns useful informations whether
+		the move is legal or not. (move stands for every actions in commands)
+		WARNING : peopleState is NOT modified
 		
-		peopleState is not modified
+		arguments :
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			kingState : (str) status of the king ('healty', 'injured', 'dead')
+			iPos : (x, y) coordinates of the pawn see glossary : #action >elements
+			commands : same as movesString (prettyCommands) without the coordinates : see glossary : #command
+			APLeft : (int) action points left see glossary : #CARDS >elements
+			
+		returns : dictionary
+			{
+				'legal': False : the move can not entirely be done
+				'validCommands': identical as commands up to the point where the first failed action occurs
+				'history': dictionary
+					{
+						'APLeft': [APLeft, ...] : list of action points left after each action in validCommands see glossary : #CARDS >elements
+						'pushes': [push, ...] : list of booleans (True if the action pushed else False) for each action in validCommands
+						'from': [(x, y), ...] : list of coordinates for each previous position (for each action in validCommands) see glossary : #action >elements
+						}
+				'APLeft': (int) action points left after every actions in validCommands see glossary : #CARDS >elements
+				'fatalMoveString': (str) character for the action that failed see glossary : #command >element
+				'lastValidPosition': (x, y) last valid coordinates for the pawn that was at iPos before see glossary : #action >elements
+				}
+				
+			OR
+			
+			{
+				'legal': True : the move can be done entirely
+				'movesList': see glossary : #action
+				'APLeft': (int) action points left after every actions in movesList see glossary : #CARDS >elements
+				'peopleStateCopy': a modified copy of peopleState see glossary : #PEOPLE
+				'kingState': (str) status of the king ('healty', 'injured', 'dead')
+		
 		'''
 		movesString = str(iPos[0])+' '+str(iPos[1])+' '+commands
 		validCommands = ''
@@ -813,20 +983,67 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _stateObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable, nDetour = 0, dirPrevious = '', nKill = 0):#stateobjectivefun
 		'''
-		this function searches for a path to accomplish objective at position fPos from position iPos with APAvailable on peopleState
+		PATHFINDING. Returns a list of moves to accomplish objective, as well as many useful informations whether objective
+		was actually completed or not
+		WARNING : this function is recursive
+		
+		the algorithm consists of the following serie of actions :
+		
+			selects the pawn at coordinates iPos,
+			
+			tries to accomplish objective at coordinates fPos with APAvailable, to do that :
+				moves the pawn by performing all horizontal movements (the pawn is now in a vertical line with fPos),
+				does the same thing vertically (the pawn is now next to fPos),
+				accomplishes objective on fPos.
+				
+			if that fails and the parameter nKill allows the function to kill an obstacle :
+				attempts to kill the obstacle
+			
+			if that fails and the parameter nDetour allows the function to make a detour :
+				attempts to avoid the obstacle by making a detour
+				
+			if that fails :
+				attempts to avoid the obstacle without making a detour
+				
+			if that fails and some of the previous actions consisted in pushing some pawns :
+				aborts the last push, considering it as an obstacle. Resume the algorithm at
+				this point
+				
+		arguments : 
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			kingState : (str) status of the king ('healty', 'injured', 'dead')
+			iPos : (x, y) coordinates of the pawn see glossary : #action >elements
+			fPos : (x, y) coordinates of the target square see glossary : #action >elements
+			objective : (str) character for the desired action see glossary : #command >element
+			APAvailable : (int) action points available see glossary : #CARDS >elements
+			nDetour : (int) maximal amount of detours allowed
+			dirPrevious : dir see glossary : #action >element
+			nKill : (int) maximal amount of kills allowed
+			
+		returns : dictionary
+			{
+				'completed': True : if objective was completed
+				'movesList': movesList list of actions to accomplish objective see glossary : #action
+				'APLeft': (int) action points left after completion of objective see glossary : #CARDS >elements
+				'peopleState' : an updated version of PEOPLE see glossary : #PEOPLE
+				'kingState' : (str) status of the king ('healty', 'injured', 'dead')
+				'lastPosition': (x, y) new coordinates of the pawn after completion of objective se glossary : #action >elements
+				}
+				
+			OR
+			
+			{
+				'completed': False : if objective was not completed
+				'movesList': [] : an empty list, no move since the objective was not completed
+				'APLeft': APAvailable : no change here
+				'error': (str) message that helps to understand why the objective was not completed
+				}
 		'''
-		#etat actuel : PathFinding pour tous les pions, opérationnel. :) YAY (:
-		#nécessite une analyse et une révision complète : la structure du code est dégueulasse, et de plus la fonction
-		#teste énormément de mouvements "tentaculaires" inutiles (conditions supplémentaires à rajouter). La complexité du code
-		#nécessite une explication détaillée pour la relecture
-		#manoeuvre d'évitement possible
-		#gère le push des chevaliers
-		#=> WARNING : cette fonction est récursive
 		if iPos == fPos and objective == 'm':
 			return {'completed':True, 'movesList':[], 'APLeft':APAvailable, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':iPos}
 		elif iPos == fPos and objective != 'm' and objective != 'r':
-			return None #erreur, on essaye d'effectuer une action autre que deplacement sur la case ou on se trouve
+			return None #error, cannot execute an action on the pawn square (other than move)
 		x, y = fPos[0]-iPos[0], fPos[1]-iPos[1]
 		xdir, ydir = self._getdir((x,y))
 		ixdir, iydir = self._getopposite(xdir), self._getopposite(ydir)
@@ -837,7 +1054,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			(abs(y)-ky)*''.join(['m',ydir,' ']),
 			(abs(x)-kx)*''.join(['m',xdir,' ']),
 			''.join([objective,metadir,' '])])
-		#execute tous les mouvements en x, tous les mouvements en y sauf un, et l'objectif en y)
 		regress = False
 		if stated[1] == dirPrevious:
 			ended = False
@@ -987,7 +1203,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 						''.join([objective,xdir,' '])])
 			elif True in pushes:
 				regress = True
-				lastTruePushIndex = len(pushes)-1-pushes[::-1].index(True) #index du dernier element de pushes (so stupid... => rindex())
+				lastTruePushIndex = len(pushes)-1-pushes[::-1].index(True) #index of last element of pushes (so stupid... => rindex())
 				fatalCommand = validCommands[3*lastTruePushIndex:3*lastTruePushIndex+3]
 				validCommands = validCommands[0:3*lastTruePushIndex]
 				pushes = pushes[0:lastTruePushIndex]
@@ -1000,16 +1216,13 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			else:
 				forceEnded = True
 				break
-			#fin de boucle
 			validObjective = self._validObjective(peopleState, kingState, iPos, stated, APAvailable)
 			ended = validObjective['legal']
-		#move impossible
 		if forceEnded:
-			reason = 'notFullyCompleted'#a modifier
-#-###################################################################################################
+			reason = 'notFullyCompleted'
 			if longestValidCommands != '':
 				return {'completed':False, 'movesList':self._prettyCommands(str(iPos[0])+' '+str(iPos[1])+' '+longestValidCommands),
-					'APLeft':APLeft, 'error':reason}#voué à disparaitre, sert uniquement pour la première IA de présentation
+					'APLeft':APLeft, 'error':reason}#will disapear with a new final version for nextmove
 			else:
 				return {'completed':False, 'movesList':[], 'APLeft':APAvailable, 'error':reason}
 		elif detourEnded:
@@ -1029,7 +1242,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			return {'completed':True, 'movesList':movesList, 'APLeft':APLeft, 'peopleState':peopleState, 'kingState':kingState,
 				'lastPosition':newcoord}
 		else:
-			#move validé
 			movesList = validObjective['movesList']
 			APLeft = validObjective['APLeft']
 			peopleState = validObjective['peopleStateCopy']
@@ -1040,10 +1252,23 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _minimizeObjective(self, peopleState, kingState, iPos, fPos, objective, APAvailable):#minimizeobjectivefun
 		'''
-		this function try to accomplish objective with a minimal amount of AP within APAvailable
-		Revamped for speed performances
+		tries to accomplish objective with a minimal amount of AP within APAvailable
+		it calls successively for _stateObjective with different parameters for APAvailable, nDetour, nKill
+		starting with the minimal amount of AP required to accomplish objective, the minimal amount of kills
+		and the minimal amount of detours, then gradually increases these three parameters following specific rules
+		these rules are different for knights, assassins, villagers/king
+		WARNING : temporary : prints informations while searching for a path (console)
+		
+		arguments :
+			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
+			kingState : (str) status of the king ('healty', 'injured', 'dead')
+			iPos : (x, y) coordinates of the pawn see glossary : #action >elements
+			fPos : (x, y) coordinates of the target square see glossary : #action >elements
+			objective : (str) character for the desired action see glossary : #command >element
+			APAvailable : (int) action points available see glossary : #CARDS >elements
+			
+		returns : same returns as _statedObjective
 		'''
-		#WARNING : vérifier que la nouvelle version traite bien tous les cas intéressants (possible perte de certains cas)
 		distance = abs(fPos[0]-iPos[0]) + abs(fPos[1]-iPos[1])
 		assassinPattern = (peopleState[iPos[0]][iPos[1]] == "assassin")
 		knightPattern = (peopleState[iPos[0]][iPos[1]] == "knight")
@@ -1059,11 +1284,11 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			if assassinPattern:
 				maxKill = (AP-minCostDist)//2+(AP-minCostDist)%2
 				if maxKill >2:
-					maxKill = 2#this is a rule of the game/ à modifier si on tue tous les chevaliers #knightsleft
+					maxKill = 2#this is a rule of the game/ #knightsleft
 			elif knightPattern:
 				maxKill = AP-minCostDist
 				if maxKill >3:
-					maxKill = 3#there can only be 3 assassins/ à modifier si on tue des assassins #assassinsleft
+					maxKill = 3#there can only be 3 assassins/ #assassinsleft
 			else:
 				maxKill = 0
 			for kill in range(0, maxKill+1):
@@ -1096,16 +1321,16 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _nextmove(self, state):#nextmovefun
 		'''
-		 Two possible situations:
-		 - If the player is the first to play, it has to select his/her assassins
-		   The move is a dictionary with a key 'assassins' whose value is a list of villagers' names
-		 - Otherwise, it has to choose a sequence of actions
-		   The possible actions are:
-		   ('move', x, y, dir): moves person at position (x,y) of one cell in direction dir
-		   ('arrest', x, y, dir): arrests the villager in direction dir with knight at position (x, y)
-		   ('kill', x, y, dir): kills the assassin/knight in direction dir with knight/assassin at position (x, y)
-		   ('attack', x, y, dir): attacks the king in direction dir with assassin at position (x, y)
-		   ('reveal', x, y): reveals villager at position (x,y) as an assassin
+		Two possible situations:
+		- If the player is the first to play, it has to select his/her assassins
+		- Otherwise, it has to choose a sequence of actions
+		see glossary : #action
+		 
+		arguments :
+			state : an updated version of KA_INITIAL_STATE see glossary : #KA_INITIAL_STATE
+			
+		returns : 
+			dumped informations for the server see glossary : #action
 		'''
 		self.TESTSECONDKILL = 0
 		self.KILLCOUNTER = 0
@@ -1128,7 +1353,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				APknight = state['card'][3]
 				if self._playernb == 0:
 					finalCommandsList=[]
-					#IA
 					if self.turns == 1:
 						stateObjective = self._stateObjective(peopleStateCopy, kingState, (8,3), (5,4), 'm', 4)
 						if stateObjective['completed']:
@@ -1201,7 +1425,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					return json.dumps({'actions': finalCommandsList}, separators=(',', ':'))
 				else:
 					finalCommandsList=[]
-					#IA
 					if self.turns == 1:
 						stateObjective = self._stateObjective(peopleStateCopy, kingState, (9,8), (7,6), 'm', 5)
 						if stateObjective['completed']:
@@ -1294,12 +1517,18 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 
-class KingAndAssassinsHumanClient(game.GameClient):#humanclass
-	'''Class representing a client for the King & Assassins game'''
+class KingAndAssassinsHumanClient(game.GameClient):#humanclientclass
+	'''represents a client for the King & Assassins game'''
 
 	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):#initfun
 		'''
-		needs self.POPULATION
+		arguments : 
+			name : name of the client 
+			server : server (tuple : (hostIP, port))
+			verbose : prints console related informations (True) or nothing (False)
+			POPULATION : see glossary : #POPULATION
+			BOARD : see glossary : #BOARD
+			KA_INITIAL_STATE : see glossary : #KA_INITIAL_STATE
 		'''
 		self.CODESACTIONS = {'m':'move', 'r':'reveal', 't':'attack', 'a':'arrest', 'k':'kill'}
 		self.DIRECTIONS = {
@@ -1317,52 +1546,13 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 
 	def _nextmove(self, state):#nextmovefun
 		'''
-		Two possible situations:
-		  -	If the player is the first to play, it has to select his/her assassins
-			i.e.: "mo pl ap" 
-			This move will select the monk, the appleman and the plumwoman as the 3 assassins
-		  -	Otherwise, it has to choose a sequence of actions
-			First it has to select the position of the targetted piece
-			Second it has to write a pattern of actions(>directions if necessary)
-			actions commands are :
-			  -	"m" : move
-			  -	"a"	: arrest
-			  -	"k"	: kill
-			  -	"t"	: attack
-			  -	"r"	: reveal
-			directions commands are :
-			  -	"N" : north
-			  -	"E"	: east
-			  - "W"	: west
-			  - "S"	: south
-			i.e.: "9 8 mW mW mW mW aW"
-			This move will select a knight located at line 9, column 8
-			Make it move 4 times to the left and then arrest a villager to the left
-			i.e.: "5 5 r mS mE mS tE"
-			This move will select a villager who is a hidden assassin at line 5, column 5
-			Reveal that this is an assassin, make it move down, right, down
-			then attack the king to the right once
-			Third it has to end is turn
-			ending command is :
-			  - "end"
+		see glossary : #command
+		
+		arguments :
+			state : an updated version of KA_INITIAL_STATE see glossary : #KA_INITIAL_STATE
 			
-			MORE =>
-			
-			multi-move : 
-			i.e.: "9 8 mW mW + 7 7 mS mE kS" ENTER
-				  "end" ENTER
-			is the same as :
-			i.e.: "9 8 mW mW" ENTER
-				  "7 7 mS mE kS" ENTER
-				  "end" ENTER
-			
-			First way (with +) is recommended as it is not possible to cancel
-			a move after ENTER
-			
-			Player can re-select a piece that has already been moved by its new
-			coordinates
-			i.e.: "9 8 mW + 9 7 mW" ENTER
-				  "end" ENTER
+		returns : 
+			dumped informations for the server see glossary : #action
 		'''
 		state = state._state['visible']
 		humanMove = sys.stdin.readline()
@@ -1383,8 +1573,7 @@ class KingAndAssassinsHumanClient(game.GameClient):#humanclass
 				while humanMove != "end":
 					humanMoveList = humanMove.split(' + ')
 					for i in range(len(humanMoveList)):
-						humanMoveList[i] = humanMoveList[i].split(' ')#regex ' + ' ou '+'
-#-###################################################################################################
+						humanMoveList[i] = humanMoveList[i].split(' ')#regex ' + ' or '+'
 						if len(humanMoveList[i]) <3:
 							print("Entrez une commande d'action correcte (mini 3 arguments)")
 							break

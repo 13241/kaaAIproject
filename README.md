@@ -1,5 +1,5 @@
 # kaaAIproject
-The game King and Assassins with AI, single player, two players and launcher
+The game King and Assassins with AI, single player, two players and launcher. You can run the tests too.
 
 On Windows : launch kaalauncher.py
 
@@ -13,13 +13,21 @@ soient présentes et fonctionnelles (contrairement à la version inachevée sur
 le repo du cours)
 
 La réflexion sur l'IA en est au stade suivant :
-	etat actuel : PathFinding pour le ROI et les VILLAGEOIS (non assassins)
-	utilise uniquement la distance minimale (pas de prise en compte des AP, pas de manoeuvre d'évitement ayant un cout de deplacement)
-	=> doit encore énormément évoluer
+	etat actuel : PathFinding pour tous les pions quel que soit le terrain et le nombre d'AP.
+	Les fonctions de pathfinding trouvent le chemin le plus court pour effectuer tout type d'action, 
+	sont capables d'effectuer des détours, de tuer des obstacles (si possible).
 	
-Vous pouvez jouer au jeu sans IA, pour ce faire, lancez des clients "humanClient"
-et utilisez le commentaire de la methode _nextmove de la classe kingAndAssassinsHumanClient
-pour la syntaxe à utiliser pour jouer les tours
+Vous pouvez jouer au jeu sans IA, pour ce faire, lancez des clients "humanClient". Un mode d'emploi
+du mode sans IA est présent dans le fichier glossary.py : #command
+
+Vous pouvez lancer les tests contenus dans test.py à partir du launcher (qui ne fonctionne que sous windows). 
+Une description des tests est présente dans chaque classe qui les représente sous forme de commentaire.
+Un schéma des tests est présent dans réflexion IA.xlsx.
+Vous pouvez aussi lancer des tests manuellement, pour ce faire : à la place de lancer un serveur avec la commande 
+"server", utilisez : "testxServer" où x est un numéro. 
+Pour les clients, utilisez : "testxClient". (le même test doit être utilisé pour les 3)
+
+Des schémas de réflexion se trouvent dans le fichier exel reflexion IA. 
 	
 # processus
 
@@ -27,10 +35,21 @@ la méthode _nextmove détermine des "objectifs" pour les pions, c'est-à-dire
 que pour un pion donné, elle détermine une action à faire sur une certaine
 case (qui peut être à une distance plus grande que 1 du pion)
 
-elle appelle ensuite la méthode _stateObjective pour cet objectif. Cette
+ces objectifs seront déterminés à partir de fonctions "radar" qui évalueront
+(seule celle du roi existe déjà) les menaces où les gènes pour un pion, et
+les classeront par ordre de priorité. Les objectifs prioritaires sont traités
+en premiers. S'il n'y a pas d'objectif particulier à remplir, les pions se dirigeront
+vers un état qui les rapproche de la victoire.
+
+elle appelle ensuite la méthode _minimizeObjective pour un objectif. Cette
+méthode permet de déterminer le coùt le moins cher pour effectuer l'objectif
+en appelant successivement la méthode _stateObjective avec des paramètres
+différents
+
+pour chaque série de paramètres, on appelle _stateObjective pour cet objectif. Cette
 méthode recherche un chemin permettant au pion d'aller effectuer l'action
 voulue sur la case voulue. Le format de ce chemin est décrit dans
-la méthode _nextmove de la classe kingAndAssassinshumanClient
+glossary.py (voir hashtag command)
 
 pour chaque chemin, on vérifie qu'il est réalisable en passant par la 
 méthode _validObjective. Cette méthode utilise :
@@ -43,27 +62,6 @@ _validMove qui vérifie qu'une action est légale dans l'état actuel du jeu
 _updateCopy qui met à jour une copie de l'état actuel du jeu pour chaque
 move validé par _validMove
 
-
-la réflexion pour la recherche du chemin se trouve dans le fichier exel 
-reflexion IA. 
-
-réflexion utilisée : 
-
-on commence par parcourir toute la distance en colonnes pour arriver 
-à une position verticale par rapport à la cible.
-
-On parcourt ensuite cette distance verticale.
-
-Si un mouvement dans la direction horizontale échoue, on le remplace
-par un mouvement dans la direction verticale.
-
-Si mouvement dans la direction verticale échoue, on annule le précédent
-mouvement dans la direction horizontale, on rajoute tous les derniers
-mouvements dans la direction verticale + 2, et on ajoute ensuite
-un mouvement dans la direction horizontale.
-On reprend l'algorithme de base.
-
-
 # état actuel de l'IA
 
 les villageois et les chevaliers se mettent en formation "coeur", c'est la
@@ -74,6 +72,10 @@ Les assassins font la grêve.
 
 06/06/2016 : Désormais, un nouveau log des updates s'ajoutera au précédent au lieu
 de fusionner avec.
+
+# UPDATE 08/06/2016
+
+Mise à jour des commentaires en anglais (il y a surement plein de fautes désolé)
 
 # UPDATE 06/06/2016
 
@@ -108,5 +110,3 @@ GROS aménagement du code principal pour effectuer des tests,
 utiliser le launcher sous windows pour lancer les tests
 
 à restructurer : réflexion IA.xlsx ainsi que la fonction _stateObjective
-
-Les commentaires des fonctions ne sont plus tous à jour.
