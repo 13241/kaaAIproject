@@ -1277,7 +1277,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 			maxCostDist = distance
 		else:
 			minCostDist = distance
-			maxCostDist = (distance//2)*3+(distance%2)*3
+			maxCostDist = (distance//2)*3+(distance%2)*2
 		print("Searching for a valid path (please be patient)...")
 		tic = time.time()
 		for AP in range(minCostDist, APAvailable+1):
