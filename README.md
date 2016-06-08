@@ -49,7 +49,7 @@ différents
 pour chaque série de paramètres, on appelle _stateObjective pour cet objectif. Cette
 méthode recherche un chemin permettant au pion d'aller effectuer l'action
 voulue sur la case voulue. Le format de ce chemin est décrit dans
-glossary.py (voir hashtag command)
+glossary.py (voir #command)
 
 pour chaque chemin, on vérifie qu'il est réalisable en passant par la 
 méthode _validObjective. Cette méthode utilise :
@@ -89,8 +89,6 @@ radars prévus : radarKingOffensive/Defensive, radarKnightOffensive/Defensive,
 radarVillagerOffensive/Defensive
 
 # UPDATE 06/06/2016 et précédentes
-
-CERTAINES INFORMATIONS MENTIONEES CI-DESSUS PEUVENT ETRE OBSOLETES
 
 Le PATHFINDING (methode _stateObjective) gère désormais les détours, peu
 importe le nombre.
