@@ -489,6 +489,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		self.TESTSECONDKILL = 0
 		self.KILLCOUNTER = 0
 		self.turns = 0
+		self.roleplay = False
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 		
 	def _handle(self, message):#handlefun
@@ -767,7 +768,10 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				}
 		'''
 		returnValue = {'cost':0,'legal':False,'push':False}
-		player=self._playernb
+		if self.roleplay:
+			player = abs(self._playernb-1)
+		else:
+			player=self._playernb
 		if moveList[0] == 'move':#validmovemove
 			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
 			if x<0 or y <0 or x>9 or y>9:
