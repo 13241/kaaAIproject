@@ -490,7 +490,6 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		self.KILLCOUNTER = 0
 		self.turns = 0
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
-		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 		
 	def _handle(self, message):#handlefun
 		'''
