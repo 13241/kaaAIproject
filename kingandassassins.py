@@ -489,6 +489,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		self.TESTSECONDKILL = 0
 		self.KILLCOUNTER = 0
 		self.turns = 0
+		self.roleplayernb = None
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
 		self.roleplayernb = self._playernb
 		
