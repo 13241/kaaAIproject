@@ -36,7 +36,7 @@ que pour un pion donné, elle détermine une action à faire sur une certaine
 case (qui peut être à une distance plus grande que 1 du pion)
 
 ces objectifs seront déterminés à partir de fonctions "radar" qui évalueront
-(seule celle du roi existe déjà) les menaces où les gènes pour un pion, et
+les menaces où les gènes pour un pion, et 
 les classeront par ordre de priorité. Les objectifs prioritaires sont traités
 en premiers. S'il n'y a pas d'objectif particulier à remplir, les pions se dirigeront
 vers un état qui les rapproche de la victoire.
@@ -72,6 +72,12 @@ Les assassins font la grêve.
 
 06/06/2016 : Désormais, un nouveau log des updates s'ajoutera au précédent au lieu
 de fusionner avec.
+
+# UPDATE 11/06/2016
+
+_radarKingDefensive est devenue _radarDefensive et est le radar global défensif pour
+tous les pions. Ajout de test5 et test6 qui testent le radar sur un chevalier et sur
+un villageois
 
 # UPDATE 08/06/2016
 

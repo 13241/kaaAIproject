@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # kingandassassins.py
 # Author: Sébastien Combéfis, Damien Abeloos
-# Version: June 6, 2016
+# Version: June 11, 2016
 
 #top
 import argparse
@@ -490,7 +490,8 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 		self.KILLCOUNTER = 0
 		self.turns = 0
 		super().__init__(server, KingAndAssassinsState(initialstate = KA_INITIAL_STATE, POPULATION = POPULATION, BOARD = BOARD), verbose=verbose)
-
+		self.roleplayernb = self._playernb
+		
 	def _handle(self, message):#handlefun
 		'''
 		no use of this for now
@@ -499,15 +500,15 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 	
 	def _radar(self, state, coord, alAP, enAP):#radarfun
 		'''
-		6 incoming types of radar
+		2 incoming types of radar offensive/defensive
 		'''	
 		pass
 		
-	def _radarKingDefensive(self, peopleState, iPos, AP):#radarkingdefensivefun
+	def _radarDefensive(self, peopleState, iPos, AP):#radardefensivefun
 		'''
-		Roams over the board around the king in search of villagers assuming they are
-		assassins with a certain amount of AP.
-		Makes a priority ranking for those villagers and a list of all the analyzed squares
+		Roams over the board around the pawn at iPos in search of enemies assuming they have action points
+		equivalents to AP
+		Makes a priority ranking for those enemies and a list of all the analyzed squares
 		
 		arguments : 
 			peopleState : an updated version of PEOPLE see glossary : #PEOPLE
@@ -519,7 +520,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				'scannedPositions' : {
 					(x, y): see glossary : #action >elements
 						{
-							'directionsSet': (dir, ...) see glossary : #action >elements
+							'dirPrevious': dir see glossary : #action >element
 							'priority': value (int) : 0-n, 0 is the highest priority
 							'occupation': name (str) : name of a pawn
 							},
@@ -528,104 +529,177 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 					priority: (int) : 0-n, 0 is the highest priority
 						[ 
 							(x, y), see glossary : #action >elements
-							...]}
+							...], 
+					...}
 				}
 		'''
+		caller = peopleState[iPos[0]][iPos[1]]
+		if caller == 'knight' or caller == 'king':
+			peopleThreat = True
+		else: 
+			peopleThreat = False
 		posDict = {}
 		extDict = {}
 		prioDict = {}
 		utmosts = self._getcoords(iPos, set())
-		extDict[1] = []
 		prioDict[0] = []
-		prioDict[1] = []
+		if caller == 'king':
+			actionCost = 2
+		else:
+			actionCost = 1
+		for i in range(1, AP-actionCost+2):
+			extDict[i] = []
+			prioDict[i] = []
 		for utmost in utmosts:
-			occupation = peopleState[utmost[0][0]][utmost[0][1]]
-			posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':1, 'occupation':occupation}
-			extDict[1].append(utmost[0])
-			if occupation == "assassin":
-				posDict[utmost[0]]['priority'] = 0
-				prioDict[0].append(utmost[0])
-			elif occupation is not None and occupation != "king" and occupation != "knight":
-				prioDict[1].append(utmost[0])
-		for APLeft in range(2,AP+1):
-			if APLeft<AP:
-				extDict[APLeft] = []
-				prioDict[APLeft] = []
-			utmosts = []
-			for previous in extDict[APLeft-1]:
-				utmosts += self._getcoords(previous, posDict[previous]['directionsSet'])
-			for utmost in utmosts:
-				if utmost[2] == 'GR':
-					if utmost[0] not in posDict.keys():
-						update = True
-					elif posDict[utmost[0]]['priority'] > APLeft-1:
-						update = True
+			occupation = peopleState[utmost['coord'][0]][utmost['coord'][1]]
+			if utmost['transition'] == 'RG' :
+				if caller == 'knight' or caller == 'king':
+					priority = 3
+				else:
+					priority = 4
+			else:
+				priority = 1
+			posDict[utmost['coord']] = {'dirPrevious':utmost['dirPrevious'], 'priority':priority, 'occupation':occupation}
+			extDict[priority].append(utmost['coord'])
+			if peopleThreat:
+				if occupation == "assassin":
+					prioDict[0].append(utmost['coord'])
+				elif occupation is not None and occupation != "king" and occupation != "knight":
+					prioDict[priority].append(utmost['coord'])
+			else:
+				if occupation == "knight":
+					prioDict[priority].append(utmost['coord'])
+		if peopleThreat:
+			for priority in range(2, AP-actionCost+3):
+				utmosts = []
+				for previous in extDict[priority-1]:
+					utmosts += self._getcoords(previous, posDict[previous]['dirPrevious'])
+				for utmost in utmosts:
+					if utmost['transition'] == 'GR':
+						if utmost['coord'] not in posDict.keys():
+							update = True
+							highway = False
+						elif posDict[utmost['coord']]['priority'] > priority-1:
+							update = True
+							highway = True
+							oldPriority = posDict[utmost['coord']]['priority']
+						else:
+							update = False
+						if update:
+							occupation = peopleState[utmost['coord'][0]][utmost['coord'][1]]
+							posDict[utmost['coord']] = {'dirPrevious':utmost['dirPrevious'], 'priority':priority-1, 'occupation':occupation}
+							if highway:
+								extDict[oldPriority].pop(extDict[oldPriority].index(utmost['coord']))
+							extDict[priority-1].append(utmost['coord'])
+							newUtmosts = self._getcoords(utmost['coord'], posDict[utmost['coord']]['dirPrevious'])
+							utmosts += newUtmosts
+							if occupation == "assassin":
+								if not highway:
+									prioDict[0].append(utmost['coord'])
+							elif occupation is not None and occupation != "king" and occupation != "knight":
+								if highway:
+									prioDict[oldPriority].pop(prioDict[oldPriority].index(utmost['coord']))
+								prioDict[priority-1].append(utmost['coord'])
+					elif priority<AP-actionCost+2:
+						if utmost['coord'] not in posDict.keys():
+							update = True
+							highway = False
+						elif posDict[utmost['coord']]['priority']>priority:
+							update = True
+							highway = True
+							oldPriority = posDict[utmost['coord']]['priority']
+						else:
+							update = False
+						if update:
+							occupation = peopleState[utmost['coord'][0]][utmost['coord'][1]]
+							posDict[utmost['coord']] = {'dirPrevious':utmost['dirPrevious'], 'priority':priority, 'occupation':occupation}
+							if highway:
+								extDict[oldPriority].pop(extDict[oldPriority].index(utmost['coord']))
+							extDict[priority].append(utmost['coord'])
+							if occupation == "assassin":
+								if not highway:
+									prioDict[0].append(utmost['coord'])
+							elif occupation is not None and occupation != "king" and occupation != "knight":
+								if highway:
+									prioDict[oldPriority].pop(prioDict[oldPriority].index(utmost['coord']))
+								prioDict[priority].append(utmost['coord'])
+		else:
+			for priority in range (2, AP-actionCost+2):
+				utmosts = []
+				for previous in extDict[priority-1]:
+					utmosts += self._getcoords(previous, posDict[previous]['dirPrevious'])
+				for utmost in utmosts:
+					if utmost['transition'] == 'RG':
+						if utmost['coord'] not in posDict.keys():
+							update = True
+							highway = False
+						elif posDict[utmost['coord']]['priority'] > priority+1:
+							update = True
+							highWay = True
+							oldPriority = posDict[utmost['coord']]['priority']
+						else:
+							update = False
+						if update:
+							occupation = peopleState[utmost['coord'][0]][utmost['coord'][1]]
+							posDict[utmost['coord']] = {'dirPrevious':utmost['dirPrevious'], 'priority':priority+1, 'occupation':occupation}
+							if highway:
+								extDict[oldPriority].pop(extDict[oldPriority].index(utmost['coord']))
+							extDict[priority+1].append(utmost['coord'])
+							if occupation == "knight":
+								if highway:
+									prioDict[oldPriority].pop(prioDict[oldPriority].index(utmost['coord']))
+								prioDict[priority+1].append(utmost['coord'])
 					else:
-						update = False
-					if update:
-						occupation = peopleState[utmost[0][0]][utmost[0][1]]
-						posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':APLeft-1, 'occupation':occupation}
-						extDict[APLeft-1].append(utmost[0])
-						newUtmosts = self._getcoords(utmost[0], posDict[utmost[0]]['directionsSet'])
-						utmosts += newUtmosts
-						if occupation == "assassin":
-							posDict[utmost[0]]['priority'] = 0
-							prioDict[0].append(utmost[0])
-						elif occupation is not None and occupation != "king" and occupation != "knight":
-							prioDict[APLeft-1].append(utmost[0])
-				elif APLeft<AP:
-					if utmost[0] not in posDict.keys():
-						update = True
-					elif posDict[utmost[0]]['priority']>APLeft:
-						update = True
-					else:
-						update = False
-					if update:
-						occupation = peopleState[utmost[0][0]][utmost[0][1]]
-						posDict[utmost[0]] = {'directionsSet':utmost[1], 'priority':APLeft, 'occupation':occupation}
-						extDict[APLeft].append(utmost[0])
-						if occupation == "assassin":
-							posDict[utmost[0]]['priority'] = 0
-							prioDict[0].append(utmost[0])
-						elif occupation is not None and occupation != "king" and occupation != "knight":
-							prioDict[APLeft].append(utmost[0])
+						if utmost['coord'] not in posDict.keys():
+							update = True
+							highway = False
+						elif posDict[utmost['coord']]['priority'] > priority:
+							update = True
+							highway = True
+							oldPriority = posDict[utmost['coord']]['priority']
+						else:
+							update = False
+						if update:
+							occupation = peopleState[utmost['coord'][0]][utmost['coord'][1]]
+							posDict[utmost['coord']] = {'dirPrevious':utmost['dirPrevious'], 'priority':priority, 'occupation':occupation}
+							if highway:
+								extDict[oldPriority].pop(extDict[oldPriority].index(utmost['coord']))
+							extDict[priority].append(utmost['coord'])
+							if occupation == "knight":
+								if highway:
+									prioDict[oldPriority].pop(prioDict[oldPriority].index(utmost['coord']))
+								prioDict[priority].append(utmost['coord'])
 		return {'prioritiesDictionary': prioDict, 'scannedPositions':posDict}
 
-	def _getcoords(self, pos, dirSet):#getcoordsfun
+	def _getcoords(self, pos, dirPrevious = ''):#getcoordsfun
 		'''
-		returns the adjacent squares to coordinate pos while following the
-		flow indicated by the directions in dirSet :
-		if dirSet has no element, returns all adjacent squares,
-		if dirSet has at least one element, returns all adjacent
-		squares except in the opposites directions of those in
-		dirSet. 
+		returns the adjacent squares to coordinate pos except in the
+		previous direction (dirPrevious)
 		It also indicates the ground-level transition from pos
-		to the adjacent squares and the new flow of directions
+		to the adjacent squares and the new previous direction
 		
 		arguments :
 			pos : (x, y) see glossary : #actions >elements
-			dirSet : (dir, ...) see glossary : #actions >element
+			dirPrevous : dir see glossary : #actions >element
 			
-		returns : list of tuple
+		returns : list of dictionaries
 			[
-				(coord, newDirSet, transition),
+				{coord: coord, 'directionsSet': newDirSet, 'transition': transition, 'dirPrevious': dir},
 				...]
 			coord : (x, y) see glossary : #actions >elements
-			newDirSet : (dir, ...) see glossary : #actions >element
 			transition : ground-level+ground-level (str) see glossary : #BOARD >element
+			dir : see glossary : #actions >element
 		'''
 		if pos[0] >= 0 and pos[1] >= 0 and pos[0]<len(self.BOARD) and pos[1]<len(self.BOARD[0]):
 			directions = ['N','S','E','W']
 			coords = []
-			for direction in dirSet:
-				directions.pop(directions.index(self._getopposite(direction)))
+			if dirPrevious in directions:
+				directions.pop(directions.index(dirPrevious))
 			for direction in directions:
 				coord = self._getcoord((pos[0], pos[1], direction))
 				if coord[0] >= 0 and coord[1] >= 0 and coord[0]<len(self.BOARD) and coord[1]<len(self.BOARD[0]):
-					newDirSet = dirSet
-					newDirSet.add(direction)
 					transition = self.BOARD[pos[0]][pos[1]]+self.BOARD[coord[0]][coord[1]]
-					coords.append((coord, newDirSet, transition))
+					coords.append({'coord': coord, 'transition': transition, 'dirPrevious':self._getopposite(direction)})
 			return coords
 		else:
 			return []
@@ -694,7 +768,7 @@ class KingAndAssassinsClient(game.GameClient):#clientclass
 				}
 		'''
 		returnValue = {'cost':0,'legal':False,'push':False}
-		player = self._playernb
+		player=self.roleplayernb
 		if moveList[0] == 'move':#validmovemove
 			x, y, d = int(moveList[1]), int(moveList[2]), moveList[3]
 			if x<0 or y <0 or x>9 or y>9:

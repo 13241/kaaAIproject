@@ -13,8 +13,8 @@ from lib import game
 from kingandassassins import KingAndAssassinsState, KingAndAssassinsServer, KingAndAssassinsClient
 
 
-ACTUALTESTNUMBER = 4
-#see the classes below to know what each test stands for (search "#testx" where x is a number)
+ACTUALTESTNUMBER = 6
+#see the classes below to know what each test stands for (search "#testxclass" where x is a number)
 
 CARDS = None 
 POPULATION = None 
@@ -54,7 +54,7 @@ class GlobalVariableAffectation():
 		global metaI
 		global metaJ
 		
-		if self.test == "test1":
+		if self.test == "test1":#test1var
 			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
 			BOARD = (
@@ -107,7 +107,7 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
-		elif self.test == "test2":
+		elif self.test == "test2":#test2var
 			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
 			BOARD = (
@@ -159,7 +159,7 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
-		elif self.test == "test3":
+		elif self.test == "test3":#test3var
 			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
 			BOARD = (
@@ -214,7 +214,7 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
-		elif self.test == "test4":
+		elif self.test == "test4":#test4var
 			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
 			BOARD = (
@@ -267,8 +267,238 @@ class GlobalVariableAffectation():
 					'assassins': 0
 				}
 			}
+		elif self.test == "test5":#test5var
+			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
 			
-class KingAndAssassinstest4Client(KingAndAssassinsClient):#test4
+			BOARD = (
+				('R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R', 'R'),
+				('G', 'G', 'G', 'R', 'G', 'R', 'G', 'R', 'G', 'R'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+			)
+			
+			metaI, metaJ = -1,-1
+			metaX, metaY = 0,1
+			KNIGHTS = {}
+			VILLAGERS = {(3,0), (4,0), (3,1), (4,1), (3,2), (4,2)}
+				
+			metaDET = 10
+			metaAP = 100
+			
+			CARDS = (
+				(100, 100, True, metaAP),
+				(100, 100, True, metaAP)
+			)
+			
+			PEOPLE = [[None for column in range(10)] for row in range(10)]
+			
+			for coord in KNIGHTS:
+				PEOPLE[coord[0]][coord[1]] = 'knight'
+			
+			PEOPLE[metaX][metaY] = 'knight'
+			
+			for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+				PEOPLE[coord[0]][coord[1]] = villager
+				
+			KA_INITIAL_STATE = {
+				'board': BOARD,
+				'people': PEOPLE,
+				'castle': [(2, 2, 'N'), (4, 1, 'W')],
+				'card': None,
+				'king': 'healthy',
+				'lastopponentmove': [],
+				'arrested': [],
+				'killed': {
+					'knights': 0,
+					'assassins': 0
+				}
+			}
+		elif self.test == "test6":#test6var
+			POPULATION = {str(i)+str(j) for i in range(9) for j in range(9)}
+			
+			BOARD = (
+				('G', 'R', 'G', 'R', 'G', 'R', 'G', 'R', 'G', 'R'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G'),
+				('G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G')
+			)
+			
+			metaI, metaJ = -1,-1
+			metaX, metaY = 0,0
+			KNIGHTS = {}
+			VILLAGERS = {(9,9), (9,8), (8,9)}
+				
+			metaDET = 10
+			metaAP = 100
+			
+			CARDS = (
+				(100, 100, True, metaAP),
+				(100, 100, True, metaAP)
+			)
+			
+			PEOPLE = [[None for column in range(10)] for row in range(10)]
+			
+			for coord in KNIGHTS:
+				PEOPLE[coord[0]][coord[1]] = 'knight'
+			
+			PEOPLE[metaX][metaY] = 'vi'
+			
+			for villager, coord in zip(random.sample(POPULATION, len(POPULATION)), VILLAGERS):
+				PEOPLE[coord[0]][coord[1]] = villager
+				
+			KA_INITIAL_STATE = {
+				'board': BOARD,
+				'people': PEOPLE,
+				'castle': [(2, 2, 'N'), (4, 1, 'W')],
+				'card': None,
+				'king': 'healthy',
+				'lastopponentmove': [],
+				'arrested': [],
+				'killed': {
+					'knights': 0,
+					'assassins': 0
+				}
+			}
+
+class KingAndAssassinstest6Client(KingAndAssassinsClient):#test6class
+	'''
+	test6 : this test prints the results of radarKingDefensive for a certain situation
+	so we can check if the result is really what we expected.
+	a villager is alone on the field
+	One path's cost is really low, so little that at some point, another path become
+	more profitable by deflecting to that one. (second line costs less than first line)
+	the function must return the threats to the villager (none) and all the squares analized
+	
+	this test is successful (see reflexion IA.xlsx to compare with expected result)
+	'''
+	
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
+		super().__init__(name, server, verbose=verbose, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE)
+			
+	def _nextmove(self, state):#nextmovefun
+		global metaX
+		global metaY
+		global metaAP
+		global metaDET
+		global metaI
+		global metaJ
+		self.TESTSECONDKILL = 0
+		self.KILLCOUNTER = 0
+		try:
+			state = state._state['visible']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
+			self.turns+=1
+			if state['card'] is None:
+				self.turns-=1
+				return json.dumps({'assassins': [peopleState[9][9], peopleState[9][8], peopleState[8][9]]}, separators=(',', ':'))
+			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
+				if self._playernb == 0:
+					return json.dumps({'actions': []}, separators=(',', ':'))
+				else:
+					radarKingDefensive = self._radarDefensive(peopleState, (metaX,metaY), 11)
+					print("pertinent scanned squares, final priority")
+					print(str(radarKingDefensive['prioritiesDictionary']))
+					print('')
+					print("all scanned squares, base priority")
+					toPrint = {}
+					for scannedPosition in radarKingDefensive['scannedPositions'].keys():
+						try:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+						except:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']]=[]
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+					for priority in toPrint.keys():
+						print(str(priority)+" : ")
+						for position in toPrint[priority]:
+							print(str(position), end = "")
+						print("")
+					return json.dumps({'actions': []}, separators=(',', ':'))
+		except Exception as e:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")			
+			
+class KingAndAssassinstest5Client(KingAndAssassinsClient):#test5class
+	'''
+	test5 : this test prints the results of radarKingDefensive for a certain situation
+	so we can check if the result is really what we expected.
+	a knight is surrounded by some villagers.
+	One path's cost is really low, so little that at some point, another path become
+	more profitable by deflecting to that one. (second line costs less than first line)
+	the function must return the threats to the knight and all the squares analized
+	
+	this test is successful (see reflexion IA.xlsx to compare with expected result)
+	'''
+	
+	def __init__(self, name, server, verbose=False, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE):
+		super().__init__(name, server, verbose=verbose, POPULATION = POPULATION, BOARD = BOARD, KA_INITIAL_STATE = KA_INITIAL_STATE)
+			
+	def _nextmove(self, state):#nextmovefun
+		global metaX
+		global metaY
+		global metaAP
+		global metaDET
+		global metaI
+		global metaJ
+		self.TESTSECONDKILL = 0
+		self.KILLCOUNTER = 0
+		try:
+			state = state._state['visible']
+			peopleState = state['people']
+			peopleStateCopy = copy.deepcopy(peopleState)
+			kingState = state['king']
+			self.turns+=1
+			if state['card'] is None:
+				self.turns-=1
+				return json.dumps({'assassins': [peopleState[3][0], peopleState[3][1], peopleState[3][2]]}, separators=(',', ':'))
+			else:
+				APking = state['card'][0]
+				APcom = state['card'][1]
+				self.CUFFS = state['card'][2]
+				APknight = state['card'][3]
+				if self._playernb == 0:
+					return json.dumps({'actions': []}, separators=(',', ':'))
+				else:
+					radarKingDefensive = self._radarDefensive(peopleState, (metaX,metaY), 7)
+					print("pertinent scanned squares, final priority")
+					print(str(radarKingDefensive['prioritiesDictionary']))
+					print('')
+					print("all scanned squares, base priority")
+					toPrint = {}
+					for scannedPosition in radarKingDefensive['scannedPositions'].keys():
+						try:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+						except:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']]=[]
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+					for priority in toPrint.keys():
+						print(str(priority)+" : ")
+						for position in toPrint[priority]:
+							print(str(position), end = "")
+						print("")
+					return json.dumps({'actions': []}, separators=(',', ':'))
+		except Exception as e:
+			traceback.print_exc(file=sys.stdout)
+			a = input("Enter")			
+			
+class KingAndAssassinstest4Client(KingAndAssassinsClient):#test4class
 	'''
 	test4 : this test prints the results of radarKingDefensive for a certain situation
 	so we can check if the result is really what we expected.
@@ -307,16 +537,29 @@ class KingAndAssassinstest4Client(KingAndAssassinsClient):#test4
 				if self._playernb == 0:
 					return json.dumps({'actions': []}, separators=(',', ':'))
 				else:
-					radarKingDefensive = self._radarKingDefensive(peopleState, (metaX,metaY), 5)
+					radarKingDefensive = self._radarDefensive(peopleState, (metaX,metaY), 5)
+					print("pertinent scanned squares, final priority")
 					print(str(radarKingDefensive['prioritiesDictionary']))
 					print('')
-					print(str(radarKingDefensive['scannedPositions'].keys()))
+					print("all scanned squares, base priority")
+					toPrint = {}
+					for scannedPosition in radarKingDefensive['scannedPositions'].keys():
+						try:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+						except:
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']]=[]
+							toPrint[radarKingDefensive['scannedPositions'][scannedPosition]['priority']].append(scannedPosition)
+					for priority in toPrint.keys():
+						print(str(priority)+" : ")
+						for position in toPrint[priority]:
+							print(str(position), end = "")
+						print("")
 					return json.dumps({'actions': []}, separators=(',', ':'))
 		except Exception as e:
 			traceback.print_exc(file=sys.stdout)
-			a = input("Enter")			
+			a = input("Enter")		
 			
-class KingAndAssassinstest3Client(KingAndAssassinsClient):#test3
+class KingAndAssassinstest3Client(KingAndAssassinsClient):#test3class
 	'''
 	test3 : this test evaluates the ability of PATHFINDING to make an assassin kill some knights on his way to reach the king
 	and attack him.
@@ -369,7 +612,7 @@ class KingAndAssassinstest3Client(KingAndAssassinsClient):#test3
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")			
 			
-class KingAndAssassinstest2Client(KingAndAssassinsClient):#test2
+class KingAndAssassinstest2Client(KingAndAssassinsClient):#test2class
 	'''
 	test2 : this test evaluates the ability of PATHFINDING to make a knight push some villagers
 	to successfully reach its destination. But some pushes in this test will make it impossible for him to do so
@@ -416,7 +659,7 @@ class KingAndAssassinstest2Client(KingAndAssassinsClient):#test2
 			traceback.print_exc(file=sys.stdout)
 			a = input("Enter")
 			
-class KingAndAssassinstest1Client(KingAndAssassinsClient):#test1
+class KingAndAssassinstest1Client(KingAndAssassinsClient):#test1class
 	'''
 	test1 : this test evaluates the performance of PATHFINDING functions for villagers pawns
 	on a board without roof where other villagers stand

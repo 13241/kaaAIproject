@@ -1,53 +1,22 @@
 *>current
 
-à faire : 
-problème des string/entiers dans les coordonnées... relire tout pour la cohérence. => done? à vérifier
+problematique radar : tester la direction qui n'est pas la direction précédente, si y'a moyen de faire plus court par la, 
+créer un héritage spécial avec comme unique direction de recherche l'héritage moins la direction opposée a celle qui a réussi.
 
-
-fonction pour push à partir d'une certaine case (sur plusieurs cases) hors state objective
 coder la fonction radar
+minimize : ne gère que les déplacements, comportement doit changer un peu avec l'action (objective)
+fonction pour push à partir d'une certaine case (sur plusieurs cases) hors state objective (pour les objectifs "pousser villageois dangereux"
 imaginer comment gérer plusieurs pions à la fois
-recommenter toutes les fonctions
-_stateObjective déceler les recherches inutiles
-recoder/restructurer _stateObjective si nécessaire
+_stateObjective meilleur moyen de la faire?
 liste de priorités, liste par priorité ? combien de niveaux de priorité?
 
+#suspens => problème des string/entiers dans les coordonnées... relire tout pour la cohérence.
+#suspens => WARNING = en cas d'annulation d'un kill d'assassin, modifier TESTSECONDKILL et KILLCOUNTER
 
-
-règle : le joueur assassin ne peut tuer que 2 chevaliers par tour à ajouter dans les règles => done
-règle : 3 assassins max => done
-test assassinat dans _stateObjective + gérer assassinat dans minimizeObjective => done
-déplacement assassinat dans _stateObjective => done
-
-trouver le chemin ayant un cout minimal => donner les détours un par un
-en commençant par 0 jusque ? limite => ne regle pas tout, un chemin de la
-meme distance peut etre moins cher qu'un autre
-=> donner les AP en partant de 0 + x detour => 
-normal : 2*x+2
-damier assassin : x+1 => règle prédominante (moins de perf pour les non assassins)
-damier autre : 3*x+3
-
-gérer les pushs des chevaliers avec la methode de pathfinding ? problemes ?
-oui, à chaque push il faut tester un détour en conservant le push, et un autre détour en annulant le push et ainsi de suite pour toute la durée
-du push, et pour tous les pushs
-problème cerné : une condition de sortie de _stateObjective est remplie avant le test de toutes les possibilités
-	ce problème ne survient pas dans le cas d'un non-chevalier, il est donc issu du fait que le chevalier peut pousser.
-	à chaque push il faut tester les détours en conservant le push, et une autre série de détours en annulant les pushs un par un
-	=> validObjective doit pouvoir dire si un push a été effectué ou non.
-	autrement dit : stateObjective doit savoir si un push doit etre effectué ou non, sinon, considérer le villageois comme un obstacle
-	avant de le push pour continuer l'algorithme de pathfinding
-	
-	validObjective : Lier validCommands avec une liste pushes (True/False) ou une autre méthode pour pouvoir annuler
-	facilement les commandes qui poussent
-	
-	quand ça break, on prend le dernier push contenu dans la validCommand à ce moment  la, on l'annule et on met une erreur
-	dans cette direction.
-	probleme : détours, l'erreur ne reste pas, vérifier priorité
-
-
-adapter le nom des variables dans les methodes pour plus de coherence
-
-
+#corrige => règle : le joueur assassin ne peut tuer que 2 chevaliers par tour à ajouter dans les règles
+#corrige => règle : 3 assassins max
+#corrige => déplacement assassinat dans _stateObjective
+#corrige => gérer les pushs des chevaliers avec la methode de pathfinding
 #corrige => transformer tous les tuples des méthodes multi-retour en dictionnaires
 	et adapter en conséquence. (fastidieux mais nécessaire pour la lisibilité
 	et la cohérence)
@@ -61,17 +30,6 @@ mouvements roi : 19 (11*1 + 4*2)
 mouvements che : 91 ( 8*5 + 5*6 + 3*7)
 mouvements vil : 68 ( 8*5 + 7*4)
 captures       :  7 (5*165 + 1*154 + 1*155)
-
-WARNING = ABORTKILL en cas d'annulation d'une série de move ou on kill sera toujours a 1
-if assassinKill in serial:
-	ABORTKILL = True
-
-if abort and ABORTKILL :
-	ABORTKILL = False
-	TESTSECONDKILL = 0
-if VALIDATE :
-	ABORTKILL = False
-
 
 Move: {"assassins":["monk","hooker","fishwoman"]}
 Move: {"actions":[]}
